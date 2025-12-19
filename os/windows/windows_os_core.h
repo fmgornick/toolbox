@@ -1,0 +1,4 @@
+#ifndef OS_CORE_WINDOWS_H
+#define OS_CORE_WINDOWS_H
+
+#endif // OS_CORE_WINDOWS_H
