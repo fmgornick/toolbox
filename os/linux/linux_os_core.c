@@ -5,6 +5,11 @@ internal void *
 os_memory_reserve(U64 size)
 {
     void *result = mmap(0, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (result == MAP_FAILED)
+    {
+        result = 0;
+    }
+    return result;
 }
 
 internal B32

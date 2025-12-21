@@ -33,6 +33,13 @@
 #define Billion(n) ((n) * 1000000000)
 #define Trillion(n) ((n) * 1000000000000)
 
+#define MemoryCopy(dst, src, size) memmove((dst), (src), (size))
+#define MemoryCopyStruct(dst, src) memmove((dst), (src), sizeof(*(dst)))
+#define MemorySet(dst, byte, size) memset((dst), (byte), (size))
+#define MemoryZero(dst, size) memset((dst), 0, (size))
+#define MemoryZeroStruct(s) memset((s), 0, sizeof(*(s)))
+#define MemoryCompare(a, b, size) memcmp((a), (b), (size))
+
 #if LANG_CXX
 #  define C_LINKAGE extern "C"
 #else
