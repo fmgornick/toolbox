@@ -14,9 +14,12 @@ arena_alloc_reserve(U64 reserve_size, B32 chain)
     Arena *result = 0;
     if (reserve_size > ARENA_DEFAULT_COMMIT_SIZE)
     {
-        void *memory = os_memory_reserve(reserve_size);
+        U64 reserve_size_aligned = AlignUpPow2(reserve_size, KB(4));
+        void *memory = os_memory_reserve(reserve_size_aligned);
         if (os_memory_commit(memory, ARENA_DEFAULT_COMMIT_SIZE))
         {
+            AsanPoison(memory, reserve_size_aligned);
+            AsanUnpoison(memory, ARENA_HEADER_SIZE);
             result = (Arena *)memory;
             result->current = result;
             result->prev = 0;
@@ -25,7 +28,7 @@ arena_alloc_reserve(U64 reserve_size, B32 chain)
             result->base_pos = 0;
             result->pos = ARENA_HEADER_SIZE;
             result->cmt = ARENA_DEFAULT_COMMIT_SIZE;
-            result->res = reserve_size;
+            result->res = reserve_size_aligned;
         }
     }
     Assert(result != 0);
@@ -39,7 +42,9 @@ arena_release(Arena *arena)
     while (current != 0)
     {
         Arena *prev = current->prev;
-        os_memory_release(current, current->res);
+        U64 reserve_size = current->res;
+        AsanPoison(current, reserve_size);
+        os_memory_release(current, reserve_size);
         current = prev;
     }
 }
@@ -64,7 +69,7 @@ arena_push_no_zero(Arena *arena, U64 size)
         if (next_chunk_pos > current->res)
         {
             U64 new_reserve_size = ARENA_DEFAULT_RESERVE_SIZE;
-            U64 enough_to_fit = size + ARENA_HEADER_SIZE;
+            U64 enough_to_fit = ARENA_HEADER_SIZE + size;
             if (new_reserve_size < enough_to_fit)
             {
                 new_reserve_size = AlignUpPow2(enough_to_fit, KB(4));
@@ -72,23 +77,24 @@ arena_push_no_zero(Arena *arena, U64 size)
             void *memory = os_memory_reserve(new_reserve_size);
             if (os_memory_commit(memory, ARENA_DEFAULT_COMMIT_SIZE))
             {
-                Arena *next = (Arena *)current;
-                next->current = next;
-                next->prev = current;
-                next->alignment = sizeof(void *);
-                next->chain = 1;
-                next->base_pos = current->base_pos + current->res;
-                next->pos = ARENA_HEADER_SIZE;
-                next->cmt = ARENA_DEFAULT_COMMIT_SIZE;
-                next->res = new_reserve_size;
-                current = next;
-                arena->current = next;
+                AsanPoison(memory, new_reserve_size);
+                AsanUnpoison(memory, ARENA_HEADER_SIZE);
+                Arena *new_chunk = (Arena *)memory;
+                new_chunk->current = new_chunk;
+                new_chunk->prev = current;
+                new_chunk->alignment = sizeof(void *);
+                new_chunk->chain = 1;
+                new_chunk->base_pos = current->base_pos + current->res;
+                new_chunk->pos = ARENA_HEADER_SIZE;
+                new_chunk->cmt = ARENA_DEFAULT_COMMIT_SIZE;
+                new_chunk->res = new_reserve_size;
+                arena->current = current = new_chunk;
             }
         }
     }
 
     U64 result_pos = AlignUpPow2(current->pos, arena->alignment);
-    U64 next_chunk_pos = size + result_pos;
+    U64 next_chunk_pos = result_pos + size;
     if (next_chunk_pos <= current->res)
     {
         if (next_chunk_pos > current->cmt)
@@ -96,14 +102,15 @@ arena_push_no_zero(Arena *arena, U64 size)
             U64 next_commit_pos_aligned = AlignUpPow2(next_chunk_pos, ARENA_DEFAULT_COMMIT_SIZE);
             U64 next_commit_pos = ClampTop(next_commit_pos_aligned, current->res);
             U64 commit_size = next_commit_pos - current->cmt;
-            if (os_memory_commit((void *)current + current->cmt, commit_size))
+            if (os_memory_commit((U8 *)current + current->cmt, commit_size))
             {
                 current->cmt = next_commit_pos;
             }
         }
         if (next_chunk_pos <= current->cmt)
         {
-            result = (void *)current + result_pos;
+            AsanUnpoison((U8 *)current + current->pos, next_chunk_pos - current->pos);
+            result = (U8 *)current + result_pos;
             current->pos = next_chunk_pos;
         }
     }
@@ -115,20 +122,23 @@ internal void
 arena_pop_to(Arena *arena, U64 pos)
 {
     Arena *current = arena->current;
-    U64 total_pos = current->base_pos + current->pos;
-    if (pos < total_pos)
+    U64 current_pos = current->base_pos + current->pos;
+    if (pos < current_pos)
     {
-        U64 clamped_total_pos = ClampBot(pos, ARENA_HEADER_SIZE);
-        while (clamped_total_pos < current->base_pos)
+        U64 total_pos_clamped = ClampBot(pos, ARENA_HEADER_SIZE);
+        while (total_pos_clamped < current->base_pos)
         {
             Arena *prev = current->prev;
-            os_memory_release(current, current->res);
+            U64 reserve_size = current->res;
+            AsanPoison(current, reserve_size);
+            os_memory_release(current, reserve_size);
             current = prev;
         }
         arena->current = current;
-        U64 new_pos = clamped_total_pos - current->base_pos;
-        U64 clamped_new_pos = ClampBot(new_pos, ARENA_HEADER_SIZE);
-        current->pos = clamped_new_pos;
+        U64 new_pos = total_pos_clamped - current->base_pos;
+        U64 new_pos_clamped = ClampBot(new_pos, ARENA_HEADER_SIZE);
+        AsanPoison((U8 *)current + new_pos_clamped, current->pos - new_pos_clamped);
+        current->pos = new_pos_clamped;
     }
 }
 

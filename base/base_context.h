@@ -1,6 +1,13 @@
 #ifndef BASE_CONTEXT_H
 #define BASE_CONTEXT_H
 
+#if !defined(BUILD_DEBUG)
+#  define BUILD_DEBUG 0
+#endif
+#if !defined(BUILD_RELEASE)
+#  define BUILD_RELEASE 0
+#endif
+
 #if defined(__clang__)
 #  define COMPILER_CLANG 1
 

@@ -60,6 +60,18 @@
 #  define shared_function C_LINKAGE
 #endif
 
+#if BUILD_DEBUG
+// #include <sanitizer/asan_interface.h>
+C_LINKAGE void __asan_poison_memory_region(void const volatile *addr, size_t size);
+C_LINKAGE void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
+#  define AsanPoison(addr, size)   __asan_poison_memory_region((addr), (size))
+#  define AsanUnpoison(addr, size) __asan_unpoison_memory_region((addr),(size))
+#else
+#  define AsanPoison(addr, size)
+#  define AsanUnpoison(addr, size)
+#endif
+
+
 #define internal static
 #define global static
 #define local_persist static
