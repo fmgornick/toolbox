@@ -19,10 +19,10 @@
 #define Swap(T, a, b) Statement(T t__ = a; a = b; b = t__;)
 #define Implies(a, b) ((!a) || (b))
 
-#define AlignUpPow2(n, p) (((n) + (p) - 1) & ~((p) - 1))
-#define AlignDownPow2(n, p) ((n) & ~((p) - 1))
 #define IsPow2(n) ((n) != 0 && ((n) & ((n) - 1)) == 0)
 #define IsPow2OrZero(n) (((n) & ((n) - 1)) == 0)
+#define AlignUpPow2(n, p) (((n) + (p) - 1) & ~((p) - 1))
+#define AlignDownPow2(n, p) ((n) & ~((p) - 1))
 
 #define KB(n) ((U64)(n) << 10)
 #define MB(n) ((U64)(n) << 20)
@@ -33,6 +33,7 @@
 #define Billion(n) ((n) * 1000000000)
 #define Trillion(n) ((n) * 1000000000000)
 
+#include <string.h>
 #define MemoryCopy(dst, src, size) memmove((dst), (src), (size))
 #define MemoryCopyStruct(dst, src) memmove((dst), (src), sizeof(*(dst)))
 #define MemorySet(dst, byte, size) memset((dst), (byte), (size))
@@ -60,17 +61,31 @@
 #  define shared_function C_LINKAGE
 #endif
 
-#if BUILD_DEBUG
-// #include <sanitizer/asan_interface.h>
+#if COMPILER_CLANG
+#  if defined(__has_feature)
+#    if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#      define ASAN_ENABLED 1
+#    endif
+#  endif
+#  define NO_ASAN __attribute__((no_sanitize("address")))
+#elif COMPILER_MSVC
+#  if defined(__SANITIZE_ADDRESS__)
+#    define ASAN_ENABLED 1
+#    define NO_ASAN __declspec(no_sanitize_address)
+#  else
+#    define NO_ASAN
+#  endif
+#endif
+
+#if ASAN_ENABLED
 C_LINKAGE void __asan_poison_memory_region(void const volatile *addr, size_t size);
 C_LINKAGE void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
-#  define AsanPoison(addr, size)   __asan_poison_memory_region((addr), (size))
-#  define AsanUnpoison(addr, size) __asan_unpoison_memory_region((addr),(size))
+#  define AsanPoison(addr, size) __asan_poison_memory_region((addr), (size))
+#  define AsanUnpoison(addr, size) __asan_unpoison_memory_region((addr), (size))
 #else
 #  define AsanPoison(addr, size)
 #  define AsanUnpoison(addr, size)
 #endif
-
 
 #define internal static
 #define global static

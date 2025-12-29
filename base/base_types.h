@@ -2,7 +2,6 @@
 #define BASE_TYPES_H
 
 #include <stdint.h>
-
 typedef int8_t S8;
 typedef int16_t S16;
 typedef int32_t S32;

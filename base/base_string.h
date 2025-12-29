@@ -6,4 +6,59 @@ typedef struct String8 {
     U64 size;
 } String8;
 
+typedef struct String16 {
+    U16 *str;
+    U64 size;
+} String16;
+
+typedef struct String32 {
+    U32 *str;
+    U64 size;
+} String32;
+
+typedef struct String8Node {
+    struct String8Node *next;
+    String8 string;
+} String8Node;
+
+typedef struct String8List {
+    String8Node *first;
+    String8Node *last;
+    U64 node_count;
+    U64 total_size;
+} String8List;
+
+typedef struct String8Array {
+    String8 *v;
+    U64 count;
+    U64 total_size;
+} String8Array;
+
+internal B32 char_is_whitespace(U8 c);
+internal B32 char_is_upper(U8 c);
+internal B32 char_is_lower(U8 c);
+internal B32 char_is_alpha(U8 c);
+internal B32 char_is_digit(U8 c, U32 base);
+internal U8 char_lower(U8 c);
+internal U8 char_upper(U8 c);
+
+#define str8_lit(s) str8((U8 *)(s), sizeof(s) - 1);
+#define str8_lit_comp(S) {(U8*)(S), sizeof(S) - 1,}
+#define str8_varg(s) (int)((s).size), ((s).str)
+
+internal String8 str8(U8 *str, U64 size);
+internal String8 str8_range(U8 *first, U8 *opl);
+internal String8 str8_cstring(U8 *cstr);
+
+internal String8 str8_prefix(String8 str, U64 size);
+internal String8 str8_postfix(String8 str, U64 size);
+internal String8 str8_skip(String8 str, U64 amt);
+internal String8 str8_chop(String8 str, U64 amt);
+internal String8 str8_substr_opl(String8 str, U64 first, U64 opl);
+internal String8 str8_substr_size(String8 str, U64 first, U64 size);
+
+internal String8List str8_split_substr(Arena *arena, String8 str, String8 substr);
+internal String8List str8_split_pattern(Arena *arena, String8 str, String8 pattern);
+internal String8Array str8_array_from_list(Arena *arena, String8List *list);
+
 #endif // BASE_STRING_H

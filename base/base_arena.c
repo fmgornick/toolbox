@@ -4,31 +4,41 @@
 internal Arena *
 arena_alloc()
 {
-    Arena *result = arena_alloc_reserve(ARENA_DEFAULT_RESERVE_SIZE, 1);
+    ArenaParams params = { 0 };
+    params.reserve_size = ARENA_DEFAULT_RESERVE_SIZE;
+    params.commit_size = ARENA_DEFAULT_COMMIT_SIZE;
+    params.alignment = sizeof(void *);
+    params.chain = 1;
+    params.zero = 1;
+    Arena *result = arena_alloc_params(&params);
     return result;
 }
 
 internal Arena *
-arena_alloc_reserve(U64 reserve_size, B32 chain)
+arena_alloc_params(ArenaParams *params)
 {
     Arena *result = 0;
-    if (reserve_size > ARENA_DEFAULT_COMMIT_SIZE)
+    if (params->reserve_size > params->commit_size)
     {
-        U64 reserve_size_aligned = AlignUpPow2(reserve_size, KB(4));
+        U64 reserve_size_aligned = AlignUpPow2(params->reserve_size, KB(4));
+        U64 commit_size_aligned = AlignUpPow2(params->commit_size, KB(4));
         void *memory = os_memory_reserve(reserve_size_aligned);
-        if (os_memory_commit(memory, ARENA_DEFAULT_COMMIT_SIZE))
+        if (os_memory_commit(memory, commit_size_aligned))
         {
             AsanPoison(memory, reserve_size_aligned);
             AsanUnpoison(memory, ARENA_HEADER_SIZE);
             result = (Arena *)memory;
             result->current = result;
             result->prev = 0;
+            result->res_size = reserve_size_aligned;
+            result->cmt_size = commit_size_aligned;
             result->alignment = sizeof(void *);
-            result->chain = chain;
+            result->chain = params->chain;
+            result->zero = params->zero;
             result->base_pos = 0;
             result->pos = ARENA_HEADER_SIZE;
-            result->cmt = ARENA_DEFAULT_COMMIT_SIZE;
             result->res = reserve_size_aligned;
+            result->cmt = commit_size_aligned;
         }
     }
     Assert(result != 0);
@@ -52,14 +62,6 @@ arena_release(Arena *arena)
 internal void *
 arena_push(Arena *arena, U64 size)
 {
-    void *result = arena_push_no_zero(arena, size);
-    MemoryZero(result, size);
-    return result;
-}
-
-internal void *
-arena_push_no_zero(Arena *arena, U64 size)
-{
     void *result = 0;
     Arena *current = arena->current;
     if (arena->chain)
@@ -68,26 +70,30 @@ arena_push_no_zero(Arena *arena, U64 size)
         next_chunk_pos += size;
         if (next_chunk_pos > current->res)
         {
-            U64 new_reserve_size = ARENA_DEFAULT_RESERVE_SIZE;
+            U64 reserve_size = AlignUpPow2(arena->res_size, KB(4));
+            U64 commit_size = AlignUpPow2(arena->cmt_size, KB(4));
             U64 enough_to_fit = ARENA_HEADER_SIZE + size;
-            if (new_reserve_size < enough_to_fit)
+            if (reserve_size < enough_to_fit)
             {
-                new_reserve_size = AlignUpPow2(enough_to_fit, KB(4));
+                reserve_size = AlignUpPow2(enough_to_fit, KB(4));
             }
-            void *memory = os_memory_reserve(new_reserve_size);
-            if (os_memory_commit(memory, ARENA_DEFAULT_COMMIT_SIZE))
+            void *memory = os_memory_reserve(reserve_size);
+            if (os_memory_commit(memory, commit_size))
             {
                 AsanPoison(memory, new_reserve_size);
                 AsanUnpoison(memory, ARENA_HEADER_SIZE);
                 Arena *new_chunk = (Arena *)memory;
                 new_chunk->current = new_chunk;
                 new_chunk->prev = current;
+                new_chunk->res_size = arena->res_size;
+                new_chunk->cmt_size = arena->cmt_size;
                 new_chunk->alignment = sizeof(void *);
                 new_chunk->chain = 1;
+                new_chunk->zero = current->zero;
                 new_chunk->base_pos = current->base_pos + current->res;
                 new_chunk->pos = ARENA_HEADER_SIZE;
-                new_chunk->cmt = ARENA_DEFAULT_COMMIT_SIZE;
-                new_chunk->res = new_reserve_size;
+                new_chunk->res = reserve_size;
+                new_chunk->cmt = commit_size;
                 arena->current = current = new_chunk;
             }
         }
@@ -99,7 +105,8 @@ arena_push_no_zero(Arena *arena, U64 size)
     {
         if (next_chunk_pos > current->cmt)
         {
-            U64 next_commit_pos_aligned = AlignUpPow2(next_chunk_pos, ARENA_DEFAULT_COMMIT_SIZE);
+            U64 next_commit_pos_aligned = next_chunk_pos + current->cmt_size - 1;
+            next_commit_pos_aligned -= next_commit_pos_aligned % current->cmt_size;
             U64 next_commit_pos = ClampTop(next_commit_pos_aligned, current->res);
             U64 commit_size = next_commit_pos - current->cmt;
             if (os_memory_commit((U8 *)current + current->cmt, commit_size))
@@ -115,7 +122,23 @@ arena_push_no_zero(Arena *arena, U64 size)
         }
     }
     Assert(result != 0);
+    if (current->zero)
+    {
+        MemoryZero(result, size);
+    }
     return result;
+}
+
+internal void
+arena_pop(Arena *arena, U64 size)
+{
+    Arena *current = arena->current;
+    U64 total_pos = current->base_pos + current->pos;
+    if (size <= total_pos)
+    {
+        U64 new_pos = total_pos - size;
+        arena_pop_to(arena, new_pos);
+    }
 }
 
 internal void
@@ -140,24 +163,6 @@ arena_pop_to(Arena *arena, U64 pos)
         AsanPoison((U8 *)current + new_pos_clamped, current->pos - new_pos_clamped);
         current->pos = new_pos_clamped;
     }
-}
-
-internal void
-arena_pop_amount(Arena *arena, U64 amount)
-{
-    Arena *current = arena->current;
-    U64 total_pos = current->base_pos + current->pos;
-    if (amount <= total_pos)
-    {
-        U64 new_pos = total_pos - amount;
-        arena_pop_to(arena, new_pos);
-    }
-}
-
-internal void
-arena_clear(Arena *arena)
-{
-    arena_pop_to(arena, 0);
 }
 
 internal void
