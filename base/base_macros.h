@@ -1,14 +1,29 @@
 #ifndef BASE_MACROS_H
 #define BASE_MACROS_H
-// clang-format off
-#define Statement(s) do { s } while (0)
-// clang-format on
-#define AssertBreak() (*(volatile int *)0 = 0)
 
-#if BUILD_DEBUG
-#  define Assert(s) Statement(if (!(s)) { AssertBreak(); })
+#if COMPILER_MSVC
+#  define DebugBreak() __debugbreak()
+#elif COMPILER_CLANG || COMPILER_GCC
+#  if ARCH_X64
+#    define DebugBreak() __builtin_trap()
+#  elif ARCH_ARM64
+#    if OS_DARWIN
+#      define DebugBreak() __builtin_debugtrap()
+#    else
+#      define DebugBreak() __asm__ volatile(".inst 0xd4200000")
+#    endif
+#  endif
 #else
-#  define Assert(s)
+#  error unknown trap intrinsic for this compiler
+#endif
+
+// clang-format off
+#define Statement(S) do { S } while (0)
+// clang-format on
+#if BUILD_DEBUG
+#  define Assert(S) Statement(if (!(S)) { DebugBreak(); })
+#else
+#  define Assert(S)
 #endif
 
 #define Min(a, b) (((a) < (b)) ? (a) : (b))

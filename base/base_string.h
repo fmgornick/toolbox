@@ -43,7 +43,7 @@ internal U8 char_lower(U8 c);
 internal U8 char_upper(U8 c);
 
 #define str8_lit(s) str8((U8 *)(s), sizeof(s) - 1);
-#define str8_lit_comp(S) {(U8*)(S), sizeof(S) - 1,}
+#define str8_lit_comp(S) { (U8 *)(S), sizeof(S) - 1 }
 #define str8_varg(s) (int)((s).size), ((s).str)
 
 internal String8 str8(U8 *str, U64 size);
@@ -57,8 +57,15 @@ internal String8 str8_chop(String8 str, U64 amt);
 internal String8 str8_substr_opl(String8 str, U64 first, U64 opl);
 internal String8 str8_substr_size(String8 str, U64 first, U64 size);
 
-internal String8List str8_split_substr(Arena *arena, String8 str, String8 substr);
 internal String8List str8_split_pattern(Arena *arena, String8 str, String8 pattern);
+internal String8List str8_split_substr(Arena *arena, String8 str, String8 substr);
+internal String8 str8_join(Arena *arena, String8List *list);
 internal String8Array str8_array_from_list(Arena *arena, String8List *list);
+
+#include <stdarg.h>
+internal String8 str8_pushf(Arena *arena, const char *fmt, ...);
+internal String8 str8_pushfv(Arena *arena, const char *fmt, va_list args);
+internal void str8_list_push(Arena *arena, String8List *list, String8 string);
+internal void str8_list_pushf(Arena *arena, String8List *list, const char *fmt, ...);
 
 #endif // BASE_STRING_H

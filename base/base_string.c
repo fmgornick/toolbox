@@ -131,32 +131,6 @@ str8_substr_size(String8 str, U64 first, U64 size)
     return result;
 }
 
-internal void
-str8_list_push_explicit(String8List *list, String8 string, String8Node *node_memory)
-{
-    node_memory->string = string;
-    if (list->first == 0)
-    {
-        list->first = node_memory;
-        list->last = node_memory;
-    }
-    else
-    {
-        list->last->next = node_memory;
-        list->last = node_memory;
-    }
-    node_memory->next = 0;
-    list->node_count += 1;
-    list->total_size += string.size;
-}
-
-internal void
-str8_list_push(Arena *arena, String8List *list, String8 string)
-{
-    String8Node *node = arena_push(arena, sizeof(String8Node));
-    str8_list_push_explicit(list, string, node);
-}
-
 internal String8List
 str8_split_pattern(Arena *arena, String8 string, String8 pattern)
 {
@@ -258,6 +232,70 @@ str8_array_from_list(Arena *arena, String8List *list)
         array.v[idx] = node->string;
     }
     return array;
+}
+
+internal String8
+str8_pushf(Arena *arena, const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    String8 result = str8_pushfv(arena, fmt, args);
+    va_end(args);
+    return result;
+}
+
+#include <stdio.h>
+internal String8
+str8_pushfv(Arena *arena, const char *fmt, va_list args)
+{
+    va_list args2;
+    va_copy(args2, args);
+    U64 buffer_size = 1024;
+    U8 *buffer = arena_push(arena, buffer_size);
+    U64 actual_size = vsnprintf((char *)buffer, buffer_size, fmt, args);
+    if (actual_size < buffer_size)
+    {
+        arena_pop(arena, buffer_size - actual_size - 1);
+    }
+    else
+    {
+        arena_pop(arena, buffer_size);
+        buffer = arena_push(arena, actual_size + 1);
+        vsnprintf((char *)buffer, actual_size + 1, fmt, args);
+    }
+    va_end(args2);
+    String8 result = str8(buffer, actual_size);
+    return result;
+}
+
+internal void
+str8_list_push(Arena *arena, String8List *list, String8 string)
+{
+    String8Node *node = arena_push(arena, sizeof(String8Node));
+    node->string = string;
+    if (list->first == 0)
+    {
+        list->first = node;
+        list->last = node;
+    }
+    else
+    {
+        list->last->next = node;
+        list->last = node;
+    }
+    node->next = 0;
+    list->node_count += 1;
+    list->total_size += string.size;
+}
+
+internal void
+str8_list_pushf(Arena *arena, String8List *list, const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    String8 string = str8_pushf(arena, fmt, args);
+    va_end(args);
+    str8_list_push(arena, list, string);
 }
 
 #endif // BASE_STRING_C
