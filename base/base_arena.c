@@ -186,4 +186,18 @@ arena_pos(Arena *arena)
     return result;
 }
 
+internal Scratch
+arena_scratch_push(Arena *arena)
+{
+    Scratch result = { 0 };
+    result.arena = arena;
+    result.pos = arena_pos(arena);
+}
+
+internal void
+arena_scratch_pop(Scratch scratch)
+{
+    arena_pop_to(scratch.arena, scratch.pos);
+}
+
 #endif // BASE_ARENA_C

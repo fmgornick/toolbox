@@ -1,6 +1,8 @@
 #ifndef BASE_MACROS_H
 #define BASE_MACROS_H
 
+#include <string.h>
+
 #if COMPILER_MSVC
 #  define DebugBreak() __debugbreak()
 #elif COMPILER_CLANG || COMPILER_GCC
@@ -48,7 +50,6 @@
 #define Billion(n) ((n) * 1000000000)
 #define Trillion(n) ((n) * 1000000000000)
 
-#include <string.h>
 #define MemoryCopy(dst, src, size) memmove((dst), (src), (size))
 #define MemoryCopyStruct(dst, src) memmove((dst), (src), sizeof(*(dst)))
 #define MemorySet(dst, byte, size) memset((dst), (byte), (size))

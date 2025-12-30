@@ -1,6 +1,9 @@
 #ifndef BASE_STRING_H
 #define BASE_STRING_H
 
+#include <stdarg.h>
+#include <stdio.h>
+
 typedef struct String8 {
     U8 *str;
     U64 size;
@@ -70,7 +73,6 @@ internal String8List str8_split_substr(Arena *arena, String8 str, String8 substr
 internal String8 str8_join(Arena *arena, String8List *list);
 internal String8Array str8_array_from_list(Arena *arena, String8List *list);
 
-#include <stdarg.h>
 internal String8 str8_pushf(Arena *arena, const char *fmt, ...);
 internal String8 str8_pushfv(Arena *arena, const char *fmt, va_list args);
 internal void str8_list_push(Arena *arena, String8List *list, String8 string);

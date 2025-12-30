@@ -244,7 +244,6 @@ str8_pushf(Arena *arena, const char *fmt, ...)
     return result;
 }
 
-#include <stdio.h>
 internal String8
 str8_pushfv(Arena *arena, const char *fmt, va_list args)
 {
@@ -299,18 +298,21 @@ str8_list_pushf(Arena *arena, String8List *list, const char *fmt, ...)
 }
 
 ////////////////////////////////
+//~ fletcher: used for determining utf-8 sizes from first byte
+global U8 utf8_bytecount[32] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0XXXXXXX (1 byte)
+    0, 0, 0, 0, 0, 0, 0, 0,                         // 10XXXXXX (invalid)
+    2, 2, 2, 2,                                     // 110XXXXX (2 bytes)
+    3, 3,                                           // 1110XXXX (3 bytes)
+    4,                                              // 11110XXX (4 bytes)
+    5,                                              // 11111XXX (invalid)
+};
+
+////////////////////////////////
 //~ fletcher: rfc2044 (section 2)
 internal UnicodeDecode
 utf8_decode(U8 *str, U64 max)
 {
-    U8 utf8_bytecount[32] = {
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0XXXXXXX (1 byte)
-        0, 0, 0, 0, 0, 0, 0, 0,                         // 10XXXXXX (invalid)
-        2, 2, 2, 2,                                     // 110XXXXX (2 bytes)
-        3, 3,                                           // 1110XXXX (3 bytes)
-        4,                                              // 11110XXX (4 bytes)
-        5,                                              // 11111XXX (invalid)
-    };
     UnicodeDecode result = { max_U32, { 1 } };
     U8 bytecount = utf8_bytecount[str[0] >> 3];
     switch (bytecount)

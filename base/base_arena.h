@@ -27,6 +27,11 @@ typedef struct ArenaParams {
     B32 zero;
 } ArenaParams;
 
+typedef struct Scratch {
+    Arena *arena;
+    U64 pos;
+} Scratch;
+
 internal Arena *arena_alloc();
 internal Arena *arena_alloc_params(ArenaParams *params);
 internal void arena_release(Arena *arena);
@@ -40,5 +45,8 @@ internal void arena_pop_to(Arena *arena, U64 pos);
 
 internal void arena_align(Arena *arena, U64 pow2_align);
 internal U64 arena_pos(Arena *arena);
+
+internal Scratch arena_scratch_push(Arena *arena);
+internal void arena_scratch_pop(Scratch scratch);
 
 #endif // BASE_ARENA_H
