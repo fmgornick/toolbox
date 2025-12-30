@@ -34,6 +34,14 @@ typedef struct String8Array {
     U64 total_size;
 } String8Array;
 
+typedef struct UnicodeDecode {
+    U32 codepoint;
+    union {
+        U32 bytes;
+        U32 words;
+    };
+} UnicodeDecode;
+
 internal B32 char_is_whitespace(U8 c);
 internal B32 char_is_upper(U8 c);
 internal B32 char_is_lower(U8 c);
@@ -67,5 +75,15 @@ internal String8 str8_pushf(Arena *arena, const char *fmt, ...);
 internal String8 str8_pushfv(Arena *arena, const char *fmt, va_list args);
 internal void str8_list_push(Arena *arena, String8List *list, String8 string);
 internal void str8_list_pushf(Arena *arena, String8List *list, const char *fmt, ...);
+
+internal UnicodeDecode utf8_decode(U8 *str, U64 max);
+internal UnicodeDecode utf16_decode(U16 *str, U64 max);
+internal U32 utf8_encode(U8 *str, U32 codepoint);
+internal U32 utf16_encode(U16 *str, U32 codepoint);
+
+internal String8 str8_from_16(Arena *arena, String16 in);
+internal String16 str16_from_8(Arena *arena, String8 in);
+internal String8 str8_from_32(Arena *arena, String32 in);
+internal String32 str32_from_8(Arena *arena, String8 in);
 
 #endif // BASE_STRING_H
