@@ -19,10 +19,11 @@ typedef struct String32 {
     U64 size;
 } String32;
 
-typedef struct String8Node {
-    struct String8Node *next;
+typedef struct String8Node String8Node;
+struct String8Node {
+    String8Node *next;
     String8 string;
-} String8Node;
+};
 
 typedef struct String8List {
     String8Node *first;

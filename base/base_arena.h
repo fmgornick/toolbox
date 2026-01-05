@@ -5,9 +5,18 @@
 #define ARENA_DEFAULT_COMMIT_SIZE KB(64)
 #define ARENA_HEADER_SIZE 128
 
-typedef struct Arena {
-    struct Arena *current;
-    struct Arena *prev;
+typedef struct ArenaParams {
+    U64 reserve_size;
+    U64 commit_size;
+    U64 alignment;
+    B32 chain;
+    B32 zero;
+} ArenaParams;
+
+typedef struct Arena Arena;
+struct Arena {
+    Arena *current;
+    Arena *prev;
     U64 res_size;
     U64 cmt_size;
     U64 alignment;
@@ -17,20 +26,24 @@ typedef struct Arena {
     U64 pos;
     U64 cmt;
     U64 res;
-} Arena;
-
-typedef struct ArenaParams {
-    U64 reserve_size;
-    U64 commit_size;
-    U64 alignment;
-    B32 chain;
-    B32 zero;
-} ArenaParams;
+};
 
 typedef struct Scratch {
     Arena *arena;
     U64 pos;
 } Scratch;
+
+typedef struct PoolNode PoolNode;
+struct PoolNode {
+    PoolNode *next;
+};
+
+typedef struct Pool {
+    Arena *arena;
+    PoolNode *free;
+    U64 block_size;
+    B32 zero;
+} Pool;
 
 internal Arena *arena_alloc();
 internal Arena *arena_alloc_params(ArenaParams *params);
@@ -48,5 +61,12 @@ internal U64 arena_pos(Arena *arena);
 
 internal Scratch arena_scratch_push(Arena *arena);
 internal void arena_scratch_pop(Scratch scratch);
+
+internal Pool *pool_alloc(U64 block_size);
+internal Pool *pool_alloc_params(U64 block_size, ArenaParams *params);
+internal void pool_release(Pool *pool);
+
+internal void *pool_push(Pool *pool);
+internal void pool_pop(Pool *pool, void *ptr);
 
 #endif // BASE_ARENA_H

@@ -1,5 +1,316 @@
-#ifndef OS_CORE_DARWIN_C
-#define OS_CORE_DARWIN_C
+#ifndef DARWIN_OS_CORE_C
+#define DARWIN_OS_CORE_C
+
+global OS_Darwin_State os_darwin_state = { 0 };
+
+internal OS_Darwin_Entity *
+os_darwin_entity_alloc(OS_Darwin_EntityKind kind)
+{
+    OS_Darwin_Entity *result = 0;
+    pthread_mutex_lock(&os_darwin_state.entity_mutex);
+    {
+        result = pool_push(os_darwin_state.entity_pool);
+    }
+    pthread_mutex_unlock(&os_darwin_state.entity_mutex);
+    result->kind = kind;
+    return result;
+}
+
+internal void
+os_darwin_entity_release(OS_Darwin_Entity *entity)
+{
+    pthread_mutex_lock(&os_darwin_state.entity_mutex);
+    {
+        pool_pop(os_darwin_state.entity_pool, entity);
+    }
+    pthread_mutex_unlock(&os_darwin_state.entity_mutex);
+}
+
+internal void *
+os_darwin_thread_entry(void *ptr)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)ptr;
+    ThreadEntryPoint *func = entity->thread.func;
+    void *args = entity->thread.args;
+    func(args);
+}
+
+internal void
+os_init(void)
+{
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&os_darwin_state.entity_mutex, &attr);
+    pthread_mutexattr_destroy(&attr);
+    os_darwin_state.entity_pool = pool_alloc(sizeof(OS_Darwin_Entity));
+}
+
+internal OS_Thread
+os_thread_launch(ThreadEntryPoint *func, void *args)
+{
+    OS_Darwin_Entity *entity = os_darwin_entity_alloc(OS_Darwin_EntityKind_Thread);
+    entity->thread.func = func;
+    entity->thread.args = args;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    int thread_result = pthread_create(&entity->thread.handle, &attr, os_darwin_thread_entry, entity);
+    pthread_attr_destroy(&attr);
+    if (thread_result != 0)
+    {
+        os_darwin_entity_release(entity);
+        entity = 0;
+    }
+    OS_Thread result = { (U64)entity };
+    return result;
+}
+
+internal B32
+os_thread_join(OS_Thread thread)
+{
+    // TODO(fletcher): handle NULL thread
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)thread.u64[0];
+    int thread_result = pthread_join(entity->thread.handle, 0);
+    B32 result = (thread_result == 0);
+    os_darwin_entity_release(entity);
+    return result;
+}
+
+internal void
+os_thread_detach(OS_Thread thread)
+{
+    // TODO(fletcher): handle NULL thread
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)thread.u64[0];
+    os_darwin_entity_release(entity);
+}
+
+internal OS_Mutex
+os_mutex_alloc(void)
+{
+    OS_Darwin_Entity *entity = os_darwin_entity_alloc(OS_Darwin_EntityKind_Mutex);
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&entity->mutex, &attr);
+    pthread_mutexattr_destroy(&attr);
+    OS_Mutex result = { (U64)entity };
+    return result;
+}
+
+internal void
+os_mutex_release(OS_Mutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    Assert(entity->kind == OS_Darwin_EntityKind_Mutex);
+    pthread_mutex_destroy(&entity->mutex);
+    os_darwin_entity_release(entity);
+}
+
+internal void
+os_mutex_lock(OS_Mutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    pthread_mutex_lock(&entity->mutex);
+}
+
+internal void
+os_mutex_unlock(OS_Mutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    pthread_mutex_unlock(&entity->mutex);
+}
+
+internal OS_RWMutex
+os_rw_mutex_alloc(void)
+{
+    OS_Darwin_Entity *entity = os_darwin_entity_alloc(OS_Darwin_EntityKind_RWMutex);
+    pthread_rwlockattr_t attr;
+    pthread_rwlockattr_init(&attr);
+    int rwlock_result = pthread_rwlock_init(&entity->rw_mutex, &attr);
+    pthread_rwlockattr_destroy(&attr);
+    OS_RWMutex result = { (U64)entity };
+    return result;
+}
+
+internal void
+os_rw_mutex_release(OS_RWMutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    Assert(entity->kind == OS_Darwin_EntityKind_RWMutex);
+    pthread_rwlock_destroy(&entity->rw_mutex);
+    os_darwin_entity_release(entity);
+}
+
+internal void
+os_rw_mutex_lock_r(OS_RWMutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    pthread_rwlock_rdlock(&entity->rw_mutex);
+}
+
+internal void
+os_rw_mutex_lock_w(OS_RWMutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    pthread_rwlock_wrlock(&entity->rw_mutex);
+}
+
+internal void
+os_rw_mutex_unlock_r(OS_RWMutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    pthread_rwlock_unlock(&entity->rw_mutex);
+}
+
+internal void
+os_rw_mutex_unlock_w(OS_RWMutex mutex)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)mutex.u64[0];
+    pthread_rwlock_unlock(&entity->rw_mutex);
+}
+
+internal OS_Condvar
+os_condvar_alloc(void)
+{
+    OS_Darwin_Entity *entity = os_darwin_entity_alloc(OS_Darwin_EntityKind_Condvar);
+    pthread_condattr_t attr;
+    pthread_condattr_init(&attr);
+    int condvar_result = pthread_cond_init(&entity->condvar, &attr);
+    pthread_condattr_destroy(&attr);
+    if (condvar_result != 0)
+    {
+        os_darwin_entity_release(entity);
+        entity = 0;
+    }
+    OS_Condvar result = { (U64)entity };
+    return result;
+}
+
+internal void
+os_condvar_release(OS_Condvar condvar)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)condvar.u64[0];
+    Assert(entity->kind == OS_Darwin_EntityKind_Condvar);
+    pthread_cond_destroy(&entity->condvar);
+    os_darwin_entity_release(entity);
+}
+
+internal B32
+os_condvar_wait(OS_Condvar condvar, OS_Mutex mutex)
+{
+    OS_Darwin_Entity *condvar_entity = (OS_Darwin_Entity *)condvar.u64[0];
+    OS_Darwin_Entity *mutex_entity = (OS_Darwin_Entity *)mutex.u64[0];
+    B32 result = !pthread_cond_wait(&condvar_entity->condvar, &mutex_entity->mutex);
+    return result;
+}
+
+internal B32
+os_condvar_wait_r(OS_Condvar condvar, OS_RWMutex mutex)
+{
+    // unimplemented
+}
+
+internal B32
+os_condvar_wait_w(OS_Condvar condvar, OS_RWMutex mutex)
+{
+    // unimplemented
+}
+
+internal B32
+os_condvar_wait_ms(OS_Condvar condvar, OS_Mutex mutex, U64 max_wait_ms)
+{
+    struct timeval now;
+    struct timespec wait;
+    gettimeofday(&now, 0);
+    wait.tv_sec = now.tv_sec + (max_wait_ms / 1000L);
+    wait.tv_nsec = (now.tv_usec * 1000L) + (max_wait_ms % 1000) * 1000000L;
+
+    OS_Darwin_Entity *condvar_entity = (OS_Darwin_Entity *)condvar.u64[0];
+    OS_Darwin_Entity *mutex_entity = (OS_Darwin_Entity *)mutex.u64[0];
+    B32 result = !pthread_cond_timedwait(&condvar_entity->condvar, &mutex_entity->mutex, &wait);
+    return result;
+}
+
+internal B32
+os_condvar_wait_r_ms(OS_Condvar condvar, OS_RWMutex mutex, U64 max_wait_ms)
+{
+    // unimplemented
+}
+
+internal B32
+os_condvar_wait_w_ms(OS_Condvar condvar, OS_RWMutex mutex, U64 max_wait_ms)
+{
+    // unimplemented
+}
+
+internal void
+os_condvar_notify_one(OS_Condvar condvar)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)condvar.u64[0];
+    pthread_cond_signal(&entity->condvar);
+}
+
+internal void
+os_condvar_notify_all(OS_Condvar condvar)
+{
+    OS_Darwin_Entity *entity = (OS_Darwin_Entity *)condvar.u64[0];
+    pthread_cond_broadcast(&entity->condvar);
+}
+
+internal OS_Semaphore
+os_semaphore_alloc(U64 initial_count, U64 max_count, String8 name)
+{
+}
+
+internal void
+os_semaphore_release(OS_Semaphore semaphore)
+{
+}
+
+internal B32
+os_semaphore_take(OS_Semaphore semaphore)
+{
+}
+
+internal B32
+os_semaphore_take_n(OS_Semaphore semaphore, U32 n)
+{
+}
+
+internal B32
+os_semaphore_take_timeout_ms(OS_Semaphore semaphore, U64 max_wait_ms)
+{
+}
+
+internal B32
+os_semaphore_take_n_timeout_ms(OS_Semaphore semaphore, U32 n, U64 max_wait_ms)
+{
+}
+
+internal void
+os_semaphore_drop(OS_Semaphore semaphore)
+{
+}
+
+internal void
+os_semaphore_drop_n(OS_Semaphore semaphore, U32 n)
+{
+}
+
+internal OS_Barrier
+os_barrier_alloc(U64 count)
+{
+}
+
+internal void
+os_barrier_release(OS_Barrier barrier)
+{
+}
+
+internal void
+os_barrier_wait(OS_Barrier barrier)
+{
+}
 
 internal void *
 os_memory_reserve(U64 size)
@@ -32,4 +343,4 @@ os_memory_release(void *ptr, U64 size)
     munmap(ptr, size);
 }
 
-#endif // OS_CORE_DARWIN_C
+#endif // DARWIN_OS_CORE_C

@@ -1,5 +1,5 @@
-#ifndef OS_CORE_WINDOWS_C
-#define OS_CORE_WINDOWS_C
+#ifndef WINDOWS_OS_CORE_C
+#define WINDOWS_OS_CORE_C
 
 internal void *
 os_memory_reserve(U64 size)
@@ -27,4 +27,4 @@ os_memory_release(void *ptr, U64 size)
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
-#endif // OS_CORE_WINDOWS_C
+#endif // WINDOWS_OS_CORE_C

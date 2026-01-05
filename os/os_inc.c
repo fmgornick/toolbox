@@ -3,6 +3,8 @@
 
 #if OS_LINUX
 #  include "linux/linux_os_core.c"
+#elif OS_WINDOWS
+#  include "windows/windows_os_core.c"
 #elif OS_DARWIN
 #  include "darwin/darwin_os_core.c"
 #else

@@ -5,12 +5,14 @@
 #include "os/os_inc.c"
 
 #include "test/test_string.c"
+#include "test/test_thread.c"
 
 S32
 main()
 {
     Arena *arena = arena_alloc();
-    test_string(arena);
+    // test_string(arena);
+    test_threads(arena);
     arena_release(arena);
     return 0;
 }

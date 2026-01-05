@@ -1,5 +1,5 @@
-#ifndef OS_CORE_LINUX_C
-#define OS_CORE_LINUX_C
+#ifndef LINUX_OS_CORE_C
+#define LINUX_OS_CORE_C
 
 internal void *
 os_memory_reserve(U64 size)
@@ -32,4 +32,4 @@ os_memory_release(void *ptr, U64 size)
     munmap(ptr, size);
 }
 
-#endif // OS_CORE_LINUX_C
+#endif // LINUX_OS_CORE_C

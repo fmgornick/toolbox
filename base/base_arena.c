@@ -200,4 +200,63 @@ arena_scratch_pop(Scratch scratch)
     arena_pop_to(scratch.arena, scratch.pos);
 }
 
+internal Pool *
+pool_alloc(U64 block_size)
+{
+    ArenaParams params = { 0 };
+    params.reserve_size = ARENA_DEFAULT_RESERVE_SIZE;
+    params.commit_size = ARENA_DEFAULT_COMMIT_SIZE;
+    params.alignment = sizeof(void *);
+    params.chain = 1;
+    params.zero = 0;
+    Arena *arena = arena_alloc_params(&params);
+
+    U64 block_size_clamped = ClampTop(block_size, sizeof(PoolNode));
+    U64 block_size_aligned = AlignUpPow2(block_size_clamped, KB(4));
+    Pool *result = arena_push(arena, block_size_aligned);
+    result->arena = arena;
+    result->free = 0;
+    result->block_size = block_size_aligned;
+    result->zero = 1;
+
+    return result;
+}
+
+internal void
+pool_release(Pool *pool)
+{
+    Arena *arena = pool->arena;
+    arena_release(arena);
+}
+
+internal void *
+pool_push(Pool *pool)
+{
+    U8 *result = (U8 *)pool->free;
+    if (result != 0)
+    {
+        pool->free = pool->free->next;
+    }
+    else
+    {
+        result = (U8 *)arena_push(pool->arena, pool->block_size);
+    }
+    if (pool->zero)
+    {
+        MemoryZero(result, pool->block_size);
+    }
+    return result;
+}
+
+internal void
+pool_pop(Pool *pool, void *ptr)
+{
+    if (ptr != 0)
+    {
+        PoolNode *node = (PoolNode *)ptr;
+        node->next = pool->free;
+        pool->free = node;
+    }
+}
+
 #endif // BASE_ARENA_C
