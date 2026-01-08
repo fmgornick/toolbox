@@ -3,10 +3,11 @@
 
 #include <errno.h>
 #include <pthread.h>
-#include <stdlib.h>
 #include <semaphore.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 typedef enum OS_Darwin_EntityKind {
     OS_Darwin_EntityKind_None,
@@ -18,8 +19,7 @@ typedef enum OS_Darwin_EntityKind {
     OS_Darwin_EntityKind_Barrier,
 } OS_Darwin_EntityKind;
 
-typedef struct OS_Darwin_Entity OS_Darwin_Entity;
-struct OS_Darwin_Entity {
+typedef struct OS_Darwin_Entity {
     OS_Darwin_EntityKind kind;
     union {
         struct {
@@ -29,14 +29,17 @@ struct OS_Darwin_Entity {
         } thread;
         pthread_mutex_t mutex;
         pthread_rwlock_t rw_mutex;
-        pthread_cond_t condvar;
+        struct {
+            pthread_cond_t cv_handle;
+            pthread_mutex_t rw_mutex_handle;
+        } condvar;
         sem_t semaphore;
         struct {
             pthread_mutex_t mutex;
             pthread_cond_t condvar;
         } barrier;
     };
-};
+} OS_Darwin_Entity;
 
 typedef struct OS_Darwin_State {
     pthread_mutex_t entity_mutex;
@@ -46,5 +49,7 @@ typedef struct OS_Darwin_State {
 internal OS_Darwin_Entity *os_darwin_entity_alloc(OS_Darwin_EntityKind kind);
 internal void os_darwin_entity_release(OS_Darwin_Entity *entity);
 internal void *os_darwin_thread_entry(void *ptr);
+
+global OS_Darwin_State os_darwin_state = { 0 };
 
 #endif // DARWIN_OS_CORE_H

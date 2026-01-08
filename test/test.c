@@ -11,7 +11,7 @@ S32
 main()
 {
     Arena *arena = arena_alloc();
-    // test_string(arena);
+    test_string(arena);
     test_threads(arena);
     arena_release(arena);
     return 0;

@@ -1,8 +1,11 @@
-#ifndef BASE_TYPES_H
-#define BASE_TYPES_H
+#ifndef BASE_CORE_H
+#define BASE_CORE_H
+
+#define internal static
+#define global static
+#define local_persist static
 
 #include <stdint.h>
-
 typedef int8_t S8;
 typedef int16_t S16;
 typedef int32_t S32;
@@ -161,4 +164,42 @@ global const U64 bit62 = 0x2000000000000000ull;
 global const U64 bit63 = 0x4000000000000000ull;
 global const U64 bit64 = 0x8000000000000000ull;
 
-#endif // BASE_TYPES_H
+internal B32 memory_is_zero(void *ptr, U64 size);
+
+#define Min(a, b) (((a) < (b)) ? (a) : (b))
+#define Max(a, b) (((a) > (b)) ? (a) : (b))
+#define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
+#define ClampTop(a, b) Min(a, b)
+#define ClampBot(a, b) Max(a, b)
+#define Swap(T, a, b) Statement(T t__ = a; a = b; b = t__;)
+#define Implies(a, b) ((!a) || (b))
+
+#define IsPow2(n) ((n) != 0 && ((n) & ((n) - 1)) == 0)
+#define IsPow2OrZero(n) (((n) & ((n) - 1)) == 0)
+#define AlignUpPow2(n, p) (((n) + (p) - 1) & ~((p) - 1))
+#define AlignDownPow2(n, p) ((n) & ~((p) - 1))
+
+#define KB(n) ((U64)(n) << 10)
+#define MB(n) ((U64)(n) << 20)
+#define GB(n) ((U64)(n) << 30)
+#define TB(n) ((U64)(n) << 40)
+#define Thousand(n) ((n) * 1000)
+#define Million(n) ((n) * 1000000)
+#define Billion(n) ((n) * 1000000000)
+#define Trillion(n) ((n) * 1000000000000)
+
+#include <string.h>
+#define MemoryCopy(dst, src, size) memmove((dst), (src), (size))
+#define MemoryCopyStruct(dst, src) memmove((dst), (src), sizeof(*(dst)))
+#define MemorySet(dst, byte, size) memset((dst), (byte), (size))
+#define MemoryZero(dst, size) memset((dst), 0, (size))
+#define MemoryZeroStruct(s) memset((s), 0, sizeof(*(s)))
+#define MemoryCompare(a, b, size) memcmp((a), (b), (size))
+
+#define MemoryIsZeroStruct(ptr) memory_is_zero((ptr), sizeof(*(ptr)))
+
+#define InvalidPath Assert(!"Invalid Path!")
+#define NotImplemented Assert(!"Not Implemented!")
+#define NoOp ((void)0)
+
+#endif // BASE_CORE_H

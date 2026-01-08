@@ -55,7 +55,7 @@ internal U8 char_lower(U8 c);
 internal U8 char_upper(U8 c);
 
 #define str8_lit(s) str8((U8 *)(s), sizeof(s) - 1);
-#define str8_lit_comp(S) { (U8 *)(S), sizeof(S) - 1 }
+#define str8_lit_comp(s) { (U8 *)(s), sizeof(s) - 1 }
 #define str8_varg(s) (int)((s).size), ((s).str)
 
 internal String8 str8(U8 *str, U64 size);

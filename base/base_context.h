@@ -1,6 +1,9 @@
 #ifndef BASE_CONTEXT_H
 #define BASE_CONTEXT_H
 
+////////////////////////////////
+// NOTE(fletcher): find compiler, os, and architecture
+
 #if defined(__clang__)
 #  define COMPILER_CLANG 1
 
@@ -76,6 +79,9 @@
 #  error compiler not found
 #endif
 
+////////////////////////////////
+// NOTE(fletcher): set undefined preprocessor macros to 0
+
 #if !defined(BUILD_DEBUG)
 #  define BUILD_DEBUG 0
 #endif
@@ -130,6 +136,105 @@
 #  define ARCH_ADDRSIZE 64
 #else
 #  define ARCH_ADDRSIZE 32
+#endif
+
+////////////////////////////////
+// NOTE(fletcher): helper context keywords
+
+#if LANG_CXX
+#  define C_LINKAGE extern "C"
+#else
+#  define C_LINKAGE extern
+#endif
+
+#if OS_WINDOWS
+#  define shared_function C_LINKAGE __declspec(dllexport)
+#else
+#  define shared_function C_LINKAGE
+#endif
+
+#if COMPILER_CLANG || COMPILER_GCC
+#  define threadvar __thread
+#elif COMPILER_CL
+#  define threadvar __declspec(thread)
+#else
+#  error threadvar not defined for this compiler
+#endif
+
+////////////////////////////////
+// NOTE(fletcher): debug trap signal context helper
+
+#if COMPILER_MSVC
+#  define DebugBreak() __debugbreak()
+#elif COMPILER_CLANG || COMPILER_GCC
+#  if ARCH_X64
+#    define DebugBreak() __builtin_trap()
+#  elif ARCH_ARM64
+#    if OS_DARWIN
+#      define DebugBreak() __builtin_debugtrap()
+#    else
+#      define DebugBreak() __asm__ volatile(".inst 0xd4200000")
+#    endif
+#  endif
+#else
+#  error unknown trap intrinsic for this compiler
+#endif
+
+////////////////////////////////
+// NOTE(fletcher): assert context helper
+
+// clang-format off
+#define Statement(s) do { s } while (0)
+// clang-format on
+#if BUILD_DEBUG
+#  define Assert(s) Statement(if (!(s)) { DebugBreak(); })
+#elif BUILD_RELEASE
+#  define Assert(s) (void)(s)
+#else
+#  define Assert(s) Statement(if (!(s)) { DebugBreak(); })
+#endif
+
+////////////////////////////////
+// NOTE(fletcher): address sanitization context helper
+
+#if COMPILER_CLANG
+#  if defined(__has_feature)
+#    if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#      define ASAN_ENABLED 1
+#    endif
+#  endif
+#  define NO_ASAN __attribute__((no_sanitize("address")))
+#elif COMPILER_MSVC
+#  if defined(__SANITIZE_ADDRESS__)
+#    define ASAN_ENABLED 1
+#    define NO_ASAN __declspec(no_sanitize_address)
+#  else
+#    define NO_ASAN
+#  endif
+#endif
+
+#if ASAN_ENABLED
+C_LINKAGE void __asan_poison_memory_region(void const volatile *addr, size_t size);
+C_LINKAGE void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
+#  define AsanPoison(addr, size) __asan_poison_memory_region((addr), (size))
+#  define AsanUnpoison(addr, size) __asan_unpoison_memory_region((addr), (size))
+#else
+#  define AsanPoison(addr, size)
+#  define AsanUnpoison(addr, size)
+#endif
+
+////////////////////////////////
+// NOTE(fletcher): c89 inline processor directive workaround
+
+// TODO(fletcher): uncomment when ported to c89
+#if 0
+#  if COMPILER_CLANG || COMPILER_GCC
+#    define inline __inline__
+#  elif COMPILER_CL
+#    define inline __inline
+#  else
+#    define inline
+#  endif
 #endif
 
 #endif // BASE_CONTEXT_H

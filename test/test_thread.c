@@ -1,23 +1,21 @@
-#include <unistd.h>
-
-global B32 done = 0;
-
 typedef struct TLS {
     OS_Mutex mutex;
     OS_Condvar condvar;
 } TLS;
 
+global B32 done = 0;
+
 internal void *
 thread_func(void *arg)
 {
     TLS *tls = (TLS *)arg;
-    sleep(3);
+    os_sleep_ms(Thousand(3));
     os_mutex_lock(tls->mutex);
     printf("child\n");
     done = 1;
     os_condvar_notify_one(tls->condvar);
     printf("notified\n");
-    sleep(1);
+    os_sleep_ms(Thousand(1));
     os_mutex_unlock(tls->mutex);
 }
 
