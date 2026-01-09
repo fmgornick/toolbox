@@ -43,7 +43,7 @@ typedef struct UnicodeDecode {
     union {
         U32 bytes;
         U32 words;
-    };
+    } representation;
 } UnicodeDecode;
 
 internal B32 char_is_whitespace(U8 c);
@@ -55,7 +55,7 @@ internal U8 char_lower(U8 c);
 internal U8 char_upper(U8 c);
 
 #define str8_lit(s) str8((U8 *)(s), sizeof(s) - 1);
-#define str8_lit_comp(s) { (U8 *)(s), sizeof(s) - 1 }
+#define str8_lit_comp(s) {(U8 *)(s), sizeof(s) - 1}
 #define str8_varg(s) (int)((s).size), ((s).str)
 
 internal String8 str8(U8 *str, U64 size);
@@ -75,7 +75,6 @@ internal String8 str8_join(Arena *arena, String8List *list);
 internal String8Array str8_array_from_list(Arena *arena, String8List *list);
 
 internal String8 str8_pushf(Arena *arena, const char *fmt, ...);
-internal String8 str8_pushfv(Arena *arena, const char *fmt, va_list args);
 internal void str8_list_push(Arena *arena, String8List *list, String8 string);
 internal void str8_list_pushf(Arena *arena, String8List *list, const char *fmt, ...);
 

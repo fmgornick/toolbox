@@ -45,7 +45,7 @@ typedef struct Pool {
     B32 zero;
 } Pool;
 
-internal Arena *arena_alloc();
+internal Arena *arena_alloc(void);
 internal Arena *arena_alloc_params(ArenaParams *params);
 internal void arena_release(Arena *arena);
 

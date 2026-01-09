@@ -8,7 +8,7 @@
 #include "test/test_thread.c"
 
 S32
-main()
+main(void)
 {
     Arena *arena = arena_alloc();
     test_string(arena);

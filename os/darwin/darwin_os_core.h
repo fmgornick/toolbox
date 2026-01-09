@@ -16,14 +16,14 @@ typedef enum OS_Darwin_EntityKind {
     OS_Darwin_EntityKind_RWMutex,
     OS_Darwin_EntityKind_Condvar,
     OS_Darwin_EntityKind_Semaphore,
-    OS_Darwin_EntityKind_Barrier,
+    OS_Darwin_EntityKind_Barrier
 } OS_Darwin_EntityKind;
 
 typedef struct OS_Darwin_Entity {
     OS_Darwin_EntityKind kind;
     union {
         struct {
-            void *func;
+            ThreadEntryPoint *func;
             void *args;
             pthread_t handle;
         } thread;
@@ -38,7 +38,7 @@ typedef struct OS_Darwin_Entity {
             pthread_mutex_t mutex;
             pthread_cond_t condvar;
         } barrier;
-    };
+    } type;
 } OS_Darwin_Entity;
 
 typedef struct OS_Darwin_State {
@@ -50,6 +50,6 @@ internal OS_Darwin_Entity *os_darwin_entity_alloc(OS_Darwin_EntityKind kind);
 internal void os_darwin_entity_release(OS_Darwin_Entity *entity);
 internal void *os_darwin_thread_entry(void *ptr);
 
-global OS_Darwin_State os_darwin_state = { 0 };
+global OS_Darwin_State os_darwin_state = {0};
 
 #endif // DARWIN_OS_CORE_H

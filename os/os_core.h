@@ -27,29 +27,25 @@ typedef struct OS_Barrier {
     U64 u64[1];
 } OS_Barrier;
 
-////////////////////////////////
-// NOTE(fletcher): initialize and abort
+/* initialize and abort ----------------------------------------------------- */
 
 internal void os_init(void);
 internal void os_abort(S32 exit_code);
 
-////////////////////////////////
-// NOTE(fletcher): threads
+/* threads ------------------------------------------------------------------ */
 
 internal OS_Thread os_thread_launch(ThreadEntryPoint *func, void *args);
 internal B32 os_thread_join(OS_Thread thread);
 internal void os_thread_detach(OS_Thread thread);
 
-////////////////////////////////
-// NOTE(fletcher): recursive mutexs
+/* recursive mutexs --------------------------------------------------------- */
 
 internal OS_Mutex os_mutex_alloc(void);
 internal void os_mutex_release(OS_Mutex mutex);
 internal void os_mutex_lock(OS_Mutex mutex);
 internal void os_mutex_unlock(OS_Mutex mutex);
 
-////////////////////////////////
-// NOTE(fletcher): read/write mutexs
+/* read/write mutexs -------------------------------------------------------- */
 
 internal OS_RWMutex os_rw_mutex_alloc(void);
 internal void os_rw_mutex_release(OS_RWMutex mutex);
@@ -58,8 +54,7 @@ internal void os_rw_mutex_lock_w(OS_RWMutex mutex);
 internal void os_rw_mutex_unlock_r(OS_RWMutex mutex);
 internal void os_rw_mutex_unlock_w(OS_RWMutex mutex);
 
-////////////////////////////////
-// NOTE(fletcher): condition variables
+/* condition variables ------------------------------------------------------ */
 
 internal OS_Condvar os_condvar_alloc(void);
 internal void os_condvar_release(OS_Condvar condvar);
@@ -72,8 +67,7 @@ internal B32 os_condvar_wait_w_ms(OS_Condvar condvar, OS_RWMutex mutex, U64 max_
 internal void os_condvar_notify_one(OS_Condvar condvar);
 internal void os_condvar_notify_all(OS_Condvar condvar);
 
-////////////////////////////////
-// NOTE(fletcher): semaphores
+/* semaphores --------------------------------------------------------------- */
 
 internal OS_Semaphore os_semaphore_alloc(U64 initial_count, U64 max_count, String8 name);
 internal void os_semaphore_release(OS_Semaphore semaphore);
@@ -84,23 +78,20 @@ internal B32 os_semaphore_take_n_timeout_ms(OS_Semaphore semaphore, U32 n, U64 m
 internal void os_semaphore_drop(OS_Semaphore semaphore);
 internal void os_semaphore_drop_n(OS_Semaphore semaphore, U32 n);
 
-////////////////////////////////
-// NOTE(fletcher): barriers
+/* barriers ----------------------------------------------------------------- */
 
 internal OS_Barrier os_barrier_alloc(U64 count);
 internal void os_barrier_release(OS_Barrier barrier);
 internal void os_barrier_wait(OS_Barrier barrier);
 
-////////////////////////////////
-// NOTE(fletcher): memory allocation
+/* memory allocation -------------------------------------------------------- */
 
 internal void *os_memory_reserve(U64 size);
 internal B32 os_memory_commit(void *ptr, U64 size);
 internal void os_memory_decommit(void *ptr, U64 size);
 internal void os_memory_release(void *ptr, U64 size);
 
-////////////////////////////////
-// NOTE(fletcher): time
+/* time --------------------------------------------------------------------- */
 
 internal void os_sleep_ms(U64 ms);
 

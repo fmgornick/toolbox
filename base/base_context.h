@@ -1,8 +1,7 @@
 #ifndef BASE_CONTEXT_H
 #define BASE_CONTEXT_H
 
-////////////////////////////////
-// NOTE(fletcher): find compiler, os, and architecture
+/* find compiler / os / architecture ---------------------------------------- */
 
 #if defined(__clang__)
 #  define COMPILER_CLANG 1
@@ -55,7 +54,7 @@
 #  endif
 
 #elif defined(_MSC_VER)
-#  define COMPILER_CL 1
+#  define COMPILER_MSVC 1
 
 #  if defined(_WIN32) || defined(_WIN64)
 #    define OS_WINDOWS 1
@@ -79,8 +78,7 @@
 #  error compiler not found
 #endif
 
-////////////////////////////////
-// NOTE(fletcher): set undefined preprocessor macros to 0
+/* set undefined preprocessor macros to 0 ----------------------------------- */
 
 #if !defined(BUILD_DEBUG)
 #  define BUILD_DEBUG 0
@@ -94,8 +92,8 @@
 #if !defined(COMPILER_GCC)
 #  define COMPILER_GCC 0
 #endif
-#if !defined(COMPILER_CL)
-#  define COMPILER_CL 0
+#if !defined(COMPILER_MSVC)
+#  define COMPILER_MSVC 0
 #endif
 #if !defined(OS_LINUX)
 #  define OS_LINUX 0
@@ -138,13 +136,16 @@
 #  define ARCH_ADDRSIZE 32
 #endif
 
-////////////////////////////////
-// NOTE(fletcher): helper context keywords
+/* helper context keywords -------------------------------------------------- */
 
 #if LANG_CXX
 #  define C_LINKAGE extern "C"
+#  define BEGIN_C_LINKAGE extern "C" {
+#  define END_C_LINKAGE }
 #else
 #  define C_LINKAGE extern
+#  define BEGIN_C_LINKAGE
+#  define END_C_LINKAGE
 #endif
 
 #if OS_WINDOWS
@@ -155,14 +156,13 @@
 
 #if COMPILER_CLANG || COMPILER_GCC
 #  define threadvar __thread
-#elif COMPILER_CL
+#elif COMPILER_MSVC
 #  define threadvar __declspec(thread)
 #else
 #  error threadvar not defined for this compiler
 #endif
 
-////////////////////////////////
-// NOTE(fletcher): debug trap signal context helper
+/* debug trap signal -------------------------------------------------------- */
 
 #if COMPILER_MSVC
 #  define DebugBreak() __debugbreak()
@@ -180,8 +180,7 @@
 #  error unknown trap intrinsic for this compiler
 #endif
 
-////////////////////////////////
-// NOTE(fletcher): assert context helper
+/* assert ------------------------------------------------------------------- */
 
 // clang-format off
 #define Statement(s) do { s } while (0)
@@ -194,8 +193,7 @@
 #  define Assert(s) Statement(if (!(s)) { DebugBreak(); })
 #endif
 
-////////////////////////////////
-// NOTE(fletcher): address sanitization context helper
+/* address sanitization ----------------------------------------------------- */
 
 #if COMPILER_CLANG
 #  if defined(__has_feature)
@@ -214,8 +212,13 @@
 #endif
 
 #if ASAN_ENABLED
-C_LINKAGE void __asan_poison_memory_region(void const volatile *addr, size_t size);
-C_LINKAGE void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
+/*
+ * NOTE(fletcher): running clang+darwin with -fsanitize=address gives this
+ * warning: "malloc: nano zone abandoned due to inability to reserve vm space."
+ */
+#  include <stddef.h>
+shared_function void __asan_poison_memory_region(void const volatile *addr, size_t size);
+shared_function void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
 #  define AsanPoison(addr, size) __asan_poison_memory_region((addr), (size))
 #  define AsanUnpoison(addr, size) __asan_unpoison_memory_region((addr), (size))
 #else
@@ -223,18 +226,43 @@ C_LINKAGE void __asan_unpoison_memory_region(void const volatile *addr, size_t s
 #  define AsanUnpoison(addr, size)
 #endif
 
-////////////////////////////////
-// NOTE(fletcher): c89 inline processor directive workaround
+/* c89 inline processor directive workaround -------------------------------- */
 
-// TODO(fletcher): uncomment when ported to c89
-#if 0
-#  if COMPILER_CLANG || COMPILER_GCC
-#    define inline __inline__
-#  elif COMPILER_CL
-#    define inline __inline
-#  else
-#    define inline
-#  endif
+#if COMPILER_CLANG || COMPILER_GCC
+#  define inline __inline__
+#elif COMPILER_MSVC
+#  define inline __inline
+#else
+#  define inline
+#endif
+
+/* fixed-width types--------------------------------------------------------- */
+
+/*
+ * TODO(fletcher): figure out how to do this properly with multiple
+ * compilers/versions
+ */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#  include <stdint.h>
+#elif defined(MSC_VER) && MSC_VER >= 1600
+#  include <stdint.h>
+#elif defined(__has_include) && __has_include(<stdint.h>)
+#  include <stdint.h>
+#else
+typedef signed char S8;
+typedef short S16;
+typedef int S32;
+typedef long long S64;
+typedef unsigned char U8;
+typedef unsigned short U16;
+typedef unsigned int U32;
+typedef unsigned long long U64;
+typedef S8 B8;
+typedef S16 B16;
+typedef S32 B32;
+typedef S64 B64;
+typedef float F32;
+typedef double F64;
 #endif
 
 #endif // BASE_CONTEXT_H

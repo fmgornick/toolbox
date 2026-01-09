@@ -1,4 +1,9 @@
+-std=c89
+-pedantic
+-DBUILD_DEBUG
+-fsanitize=address
 -I.
 -include base/base_inc.h
 -include os/os_inc.h
 -Wno-pointer-sign
+-Wno-comment

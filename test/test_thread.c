@@ -22,22 +22,26 @@ thread_func(void *arg)
 internal void
 test_threads(Arena *arena)
 {
+    OS_Mutex mutex;
+    OS_Condvar condvar;
+    OS_Thread thread;
+    TLS tls;
     os_init();
-    OS_Mutex mutex = os_mutex_alloc();
-    OS_Condvar condvar = os_condvar_alloc();
-    TLS tls = { 0 };
+    mutex = os_mutex_alloc();
+    condvar = os_condvar_alloc();
     tls.mutex = mutex;
     tls.condvar = condvar;
 
-    OS_Thread thread = os_thread_launch((ThreadEntryPoint *)thread_func, (void *)&tls);
+    thread = os_thread_launch((ThreadEntryPoint *)thread_func, (void *)&tls);
     printf("initial wait (1 sec)...\n");
 
     printf("waiting on condvar...\n");
     os_mutex_lock(mutex);
     while (done == 0)
     {
+        B32 res;
         printf("parent\n");
-        B32 res = os_condvar_wait_ms(condvar, mutex, 5000);
+        res = os_condvar_wait_ms(condvar, mutex, 5000);
         printf("res: %d\n", res);
     }
 

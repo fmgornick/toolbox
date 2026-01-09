@@ -28,11 +28,7 @@ char_is_alpha(U8 c)
 internal B32
 char_is_digit(U8 c, U32 base)
 {
-    B32 result = 0;
-    if (1 <= base && base <= 16)
-    {
-    }
-    return result;
+    NotImplemented;
 }
 
 internal U8
@@ -60,81 +56,99 @@ char_upper(U8 c)
 internal String8
 str8(U8 *str, U64 size)
 {
-    String8 result = { str, size };
+    String8 result = {0};
+    result.str = str;
+    result.size = size;
     return result;
 }
 
 internal String8
 str8_range(U8 *first, U8 *opl)
 {
-    String8 result = { first, (U64)(opl - first) };
+    String8 result = {0};
+    result.str = first;
+    result.size = (U64)(opl - first);
     return result;
 }
 
 internal String8
 str8_cstring(U8 *cstr)
 {
-    U8 *ptr = cstr;
+    U8 *ptr;
+    String8 result;
+    ptr = cstr;
     while (*ptr != '\0') ptr += 1;
-    String8 result = str8_range(cstr, ptr);
+    result = str8_range(cstr, ptr);
     return result;
 }
 
 internal String8
 str8_prefix(String8 str, U64 size)
 {
+    String8 result = {0};
     U64 size_clamped = ClampTop(size, str.size);
-    String8 result = { str.str, size_clamped };
+    result.str = str.str;
+    result.size = size_clamped;
     return result;
 }
 
 internal String8
 str8_postfix(String8 str, U64 size)
 {
+    String8 result = {0};
     U64 size_clamped = ClampTop(size, str.size);
     U64 offset = str.size - size_clamped;
-    String8 result = { str.str + size_clamped, size_clamped };
+    result.str = str.str + size_clamped;
+    result.size = size_clamped;
     return result;
 }
 
 internal String8
 str8_skip(String8 str, U64 amt)
 {
+    String8 result = {0};
     U64 amt_clamped = ClampTop(amt, str.size);
-    String8 result = { str.str + amt_clamped, str.size - amt_clamped };
+    result.str = str.str + amt_clamped;
+    result.size = str.size - amt_clamped;
     return result;
 }
 
 internal String8
 str8_chop(String8 str, U64 amt)
 {
+    String8 result = {0};
     U64 amt_clamped = ClampTop(amt, str.size);
-    String8 result = { str.str, str.size - amt_clamped };
+    result.str = str.str;
+    result.size = str.size - amt_clamped;
     return result;
 }
 
 internal String8
 str8_substr_opl(String8 str, U64 first, U64 opl)
 {
+    String8 result = {0};
     U64 opl_clamped = ClampTop(opl, str.size);
     U64 first_clamped = ClampTop(first, opl_clamped);
-    String8 result = { str.str + first_clamped, opl_clamped - first_clamped };
+    result.str = str.str + first_clamped;
+    result.size = opl_clamped - first_clamped;
     return result;
 }
 
 internal String8
 str8_substr_size(String8 str, U64 first, U64 size)
 {
+    String8 result = {0};
     U64 first_clamped = ClampTop(first, str.size);
     U64 size_clamped = ClampTop(size, str.size - first_clamped);
-    String8 result = { str.str + first_clamped, size_clamped };
+    result.str = str.str + first_clamped;
+    result.size = size_clamped;
     return result;
 }
 
 internal String8List
 str8_split_pattern(Arena *arena, String8 string, String8 pattern)
 {
-    String8List result = { 0 };
+    String8List result = {0};
     U8 *ptr = string.str;
     U8 *split_first = ptr;
     U8 *opl = string.str + string.size;
@@ -142,7 +156,8 @@ str8_split_pattern(Arena *arena, String8 string, String8 pattern)
     {
         U8 byte = *ptr;
         B32 is_split_byte = 0;
-        for (U64 i = 0; i < pattern.size; i++)
+        U64 i;
+        for (i = 0; i < pattern.size; i++)
         {
             if (byte == pattern.str[i])
             {
@@ -171,14 +186,15 @@ str8_split_pattern(Arena *arena, String8 string, String8 pattern)
 internal String8List
 str8_split_substr(Arena *arena, String8 string, String8 substr)
 {
-    String8List result = { 0 };
+    String8List result = {0};
     U8 *ptr = string.str;
     U8 *split_first = ptr;
     U8 *opl = string.str + string.size;
     for (; ptr < opl - substr.size; ptr += 1)
     {
         B32 is_split_substr = 1;
-        for (U64 i = 0; i < substr.size; i++)
+        U64 i;
+        for (i = 0; i < substr.size; i++)
         {
             if (ptr[i] != substr.str[i])
             {
@@ -208,62 +224,76 @@ str8_split_substr(Arena *arena, String8 string, String8 substr)
 internal String8
 str8_join(Arena *arena, String8List *list)
 {
+    String8 result = {0};
     U8 *str = arena_push(arena, list->total_size);
     U8 *ptr = str;
-    for (String8Node *node = list->first; node != 0; node = node->next)
+    String8Node *node;
+    for (node = list->first; node != 0; node = node->next)
     {
         MemoryCopy(ptr, node->string.str, node->string.size);
         ptr += node->string.size;
     }
-    String8 result = { str, list->total_size };
+    result.str = str;
+    result.size = list->total_size;
     return result;
 }
 
 internal String8Array
 str8_array_from_list(Arena *arena, String8List *list)
 {
-    String8Array array = { 0 };
-    array.count = list->node_count;
-    array.total_size = list->total_size;
-    array.v = arena_push(arena, array.count * sizeof(String8));
-    U64 idx = 0;
-    for (String8Node *node = list->first; node != 0; node = node->next, idx += 1)
+    String8Array result = {0};
+    U64 idx;
+    String8Node *node;
+    result.count = list->node_count;
+    result.total_size = list->total_size;
+    result.v = arena_push(arena, result.count * sizeof(String8));
+    for (idx = 0, node = list->first; node != 0; node = node->next, idx += 1)
     {
-        array.v[idx] = node->string;
+        result.v[idx] = node->string;
     }
-    return array;
+    return result;
 }
 
 internal String8
 str8_pushf(Arena *arena, const char *fmt, ...)
 {
+    String8 result = {0};
     va_list args;
+    U64 buffer_size;
+    S64 actual_size;
+    U8 *buffer;
+    buffer_size = 1024;
+    buffer = arena_push(arena, buffer_size);
     va_start(args, fmt);
-    String8 result = str8_pushfv(arena, fmt, args);
+    actual_size = vsnprintf((char *)buffer, buffer_size, fmt, args);
     va_end(args);
-    return result;
-}
-
-internal String8
-str8_pushfv(Arena *arena, const char *fmt, va_list args)
-{
-    va_list args2;
-    va_copy(args2, args);
-    U64 buffer_size = 1024;
-    U8 *buffer = arena_push(arena, buffer_size);
-    U64 actual_size = vsnprintf((char *)buffer, buffer_size, fmt, args);
-    if (actual_size < buffer_size)
+    if (actual_size < 0)
     {
-        arena_pop(arena, buffer_size - actual_size - 1);
+        arena_pop(arena, buffer_size);
+    }
+    else if (actual_size < buffer_size)
+    {
+        arena_pop(arena, buffer_size - (U64)actual_size - 1);
+        result.str = buffer;
+        result.size = actual_size;
     }
     else
     {
         arena_pop(arena, buffer_size);
-        buffer = arena_push(arena, actual_size + 1);
-        vsnprintf((char *)buffer, actual_size + 1, fmt, args);
+        buffer = arena_push(arena, (U64)actual_size + 1);
+        va_start(args, fmt);
+        actual_size = vsnprintf((char *)buffer, actual_size + 1, fmt, args);
+        va_end(args);
+        if (actual_size < 0)
+        {
+            arena_pop(arena, buffer_size);
+        }
+        else
+        {
+            result.str = buffer;
+            result.size = actual_size;
+        }
     }
-    va_end(args2);
-    String8 result = str8(buffer, actual_size);
     return result;
 }
 
@@ -291,35 +321,34 @@ internal void
 str8_list_pushf(Arena *arena, String8List *list, const char *fmt, ...)
 {
     va_list args;
+    String8 string;
     va_start(args, fmt);
-    String8 string = str8_pushf(arena, fmt, args);
+    string = str8_pushf(arena, fmt, args);
     va_end(args);
     str8_list_push(arena, list, string);
 }
 
-////////////////////////////////
-//~ fletcher: used for determining utf-8 sizes from first byte
+/* NOTE(fletcher): used for determining utf-8 sizes from first byte */
 global U8 utf8_bytecount[32] = {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0XXXXXXX (1 byte)
-    0, 0, 0, 0, 0, 0, 0, 0,                         // 10XXXXXX (invalid)
-    2, 2, 2, 2,                                     // 110XXXXX (2 bytes)
-    3, 3,                                           // 1110XXXX (3 bytes)
-    4,                                              // 11110XXX (4 bytes)
-    5,                                              // 11111XXX (invalid)
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0XXXXXXX (1 byte)  */
+    0, 0, 0, 0, 0, 0, 0, 0,                         /* 10XXXXXX (invalid) */
+    2, 2, 2, 2,                                     /* 110XXXXX (2 bytes) */
+    3, 3,                                           /* 1110XXXX (3 bytes) */
+    4,                                              /* 11110XXX (4 bytes) */
+    5,                                              /* 11111XXX (invalid) */
 };
 
-////////////////////////////////
-//~ fletcher: rfc2044 (section 2)
+/* NOTE(fletcher): rfc2044 (section 2) */
 internal UnicodeDecode
 utf8_decode(U8 *str, U64 max)
 {
-    UnicodeDecode result = { max_U32, { 1 } };
+    UnicodeDecode result = {max_U32, {1}};
     U8 bytecount = utf8_bytecount[str[0] >> 3];
     switch (bytecount)
     {
     case 1: {
         result.codepoint = str[0];
-        result.bytes = 1;
+        result.representation.bytes = 1;
     }
     break;
     case 2: {
@@ -327,7 +356,7 @@ utf8_decode(U8 *str, U64 max)
         {
             result.codepoint = (str[0] & bitmask5) << 6;
             result.codepoint |= (str[1] & bitmask6);
-            result.bytes = 2;
+            result.representation.bytes = 2;
         }
     }
     break;
@@ -339,7 +368,7 @@ utf8_decode(U8 *str, U64 max)
             result.codepoint = (str[0] & bitmask4) << 12;
             result.codepoint |= (str[1] & bitmask6) << 6;
             result.codepoint |= (str[2] & bitmask6);
-            result.bytes = 3;
+            result.representation.bytes = 3;
         }
     }
     break;
@@ -353,7 +382,7 @@ utf8_decode(U8 *str, U64 max)
             result.codepoint |= (str[1] & bitmask6) << 12;
             result.codepoint |= (str[2] & bitmask6) << 6;
             result.codepoint |= (str[3] & bitmask6);
-            result.bytes = 4;
+            result.representation.bytes = 4;
         }
     }
     break;
@@ -361,14 +390,13 @@ utf8_decode(U8 *str, U64 max)
     return result;
 }
 
-////////////////////////////////
-//~ fletcher: rfc2781 (section 2.2)
+/* NOTE(fletcher): rfc2781 (section 2.2) */
 internal UnicodeDecode
 utf16_decode(U16 *str, U64 max)
 {
-    UnicodeDecode result = { max_U32, { 1 } };
+    UnicodeDecode result = {max_U32, {1}};
     result.codepoint = str[0];
-    result.words = 1;
+    result.representation.words = 1;
     if (max >= 2 &&                             //
         0xD800 <= str[0] && str[0] <= 0xDBFF && //
         0xDC00 <= str[1] && str[1] <= 0xDFFF)
@@ -376,53 +404,51 @@ utf16_decode(U16 *str, U64 max)
         result.codepoint = ((str[0] & bitmask10) << 10);
         result.codepoint |= (str[1] & bitmask10);
         result.codepoint += 0x10000;
-        result.words = 2;
+        result.representation.words = 2;
     }
     return result;
 }
 
-////////////////////////////////
-//~ fletcher: rfc2044 (section 2)
+/* NOTE(fletcher): rfc2044 (section 2) */
 internal U32
 utf8_encode(U8 *str, U32 codepoint)
 {
     U8 bytecount;
     if (codepoint <= bitmask7)
-    { // 1 byte  => 7 bits
+    { /* 1 byte  => 7 bits */
         str[0] = (U8)codepoint;
         bytecount = 1;
     }
     else if (codepoint <= bitmask11)
-    { // 2 bytes => 11 bits
-        str[0] = (0b110 << 5) | ((codepoint >> 6) & bitmask5);
-        str[1] = (0b10 << 6) | (codepoint & bitmask6);
+    { /* 2 bytes => 11 bits */
+        str[0] = (bitmask2 << 6) | ((codepoint >> 6) & bitmask5);
+        str[1] = (bit2 << 6) | (codepoint & bitmask6);
         bytecount = 2;
     }
     else if (codepoint <= bitmask16)
-    { // 3 bytes => 16 bits
-        str[0] = (0b1110 << 4) | ((codepoint >> 12) & bitmask4);
-        str[1] = (0b110 << 6) | ((codepoint >> 6) & bitmask6);
-        str[2] = (0b110 << 6) | (codepoint & bitmask6);
+    { /* 3 bytes => 16 bits */
+        str[0] = (bitmask3 << 5) | ((codepoint >> 12) & bitmask4);
+        str[1] = (bitmask2 << 7) | ((codepoint >> 6) & bitmask6);
+        str[2] = (bitmask2 << 7) | (codepoint & bitmask6);
         bytecount = 3;
     }
     else if (codepoint <= bitmask21)
-    { // 4 bytes => 21 bits
-        str[0] = (0b11110 << 3) | ((codepoint >> 18) & bitmask3);
-        str[1] = (0b10 << 6) | ((codepoint >> 12) & bitmask6);
-        str[2] = (0b10 << 6) | ((codepoint >> 6) & bitmask6);
-        str[3] = (0b10 << 6) | (codepoint & bitmask6);
+    { /* 4 bytes => 21 bits */
+        str[0] = (bitmask4 << 4) | ((codepoint >> 18) & bitmask3);
+        str[1] = (bit1 << 7) | ((codepoint >> 12) & bitmask6);
+        str[2] = (bit1 << 7) | ((codepoint >> 6) & bitmask6);
+        str[3] = (bit1 << 7) | (codepoint & bitmask6);
         bytecount = 4;
     }
     else
-    { // anything else => invalid
+    { /* anything else => invalid */
         str[0] = '?';
         bytecount = 1;
     }
     return bytecount;
 }
 
-////////////////////////////////
-//~ fletcher: rfc2781 (section 2.1)
+/* NOTE(fletcher): rfc2781 (section 2.1) */
 internal U32
 utf16_encode(U16 *str, U32 codepoint)
 {
@@ -450,7 +476,7 @@ utf16_encode(U16 *str, U32 codepoint)
 internal String8
 str8_from_16(Arena *arena, String16 in)
 {
-    String8 result = { 0 };
+    String8 result = {0};
     if (in.size > 0)
     {
         U64 cap = in.size * 3;
@@ -462,7 +488,7 @@ str8_from_16(Arena *arena, String16 in)
         {
             UnicodeDecode decoded = utf16_decode(ptr, opl - ptr);
             size += utf8_encode(str + size, decoded.codepoint);
-            ptr += decoded.words;
+            ptr += decoded.representation.words;
         }
         arena_pop(arena, sizeof(U8) * (cap - size));
         result.str = str;
@@ -474,7 +500,7 @@ str8_from_16(Arena *arena, String16 in)
 internal String16
 str16_from_8(Arena *arena, String8 in)
 {
-    String16 result = { 0 };
+    String16 result = {0};
     if (in.size > 0)
     {
         U64 cap = in.size;
@@ -486,7 +512,7 @@ str16_from_8(Arena *arena, String8 in)
         {
             UnicodeDecode decoded = utf8_decode(ptr, opl - ptr);
             size += utf16_encode(str + size, decoded.codepoint);
-            ptr += decoded.bytes;
+            ptr += decoded.representation.bytes;
         }
         arena_pop(arena, sizeof(U16) * (cap - size));
         result.str = str;
@@ -498,7 +524,7 @@ str16_from_8(Arena *arena, String8 in)
 internal String8
 str8_from_32(Arena *arena, String32 in)
 {
-    String8 result = { 0 };
+    String8 result = {0};
     if (in.size > 0)
     {
         U64 cap = in.size * 4;
@@ -521,7 +547,7 @@ str8_from_32(Arena *arena, String32 in)
 internal String32
 str32_from_8(Arena *arena, String8 in)
 {
-    String32 result = { 0 };
+    String32 result = {0};
     if (in.size > 0)
     {
         U64 cap = in.size;
@@ -533,7 +559,7 @@ str32_from_8(Arena *arena, String8 in)
         {
             UnicodeDecode decoded = utf8_decode(ptr, opl - ptr);
             str[size] = decoded.codepoint;
-            ptr += decoded.bytes;
+            ptr += decoded.representation.bytes;
             size += 1;
         }
         arena_pop(arena, sizeof(U32) * (cap - size));
