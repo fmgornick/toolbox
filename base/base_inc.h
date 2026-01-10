@@ -7,4 +7,4 @@
 #include "base_strings.h"
 #include "base_entry.h"
 
-#endif // BASE_INC_H
+#endif /* BASE_INC_H */

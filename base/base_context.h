@@ -182,9 +182,9 @@
 
 /* assert ------------------------------------------------------------------- */
 
-// clang-format off
+/* clang-format off */
 #define Statement(s) do { s } while (0)
-// clang-format on
+/* clang-format on */
 #if BUILD_DEBUG
 #  define Assert(s) Statement(if (!(s)) { DebugBreak(); })
 #elif BUILD_RELEASE
@@ -265,4 +265,4 @@ typedef float F32;
 typedef double F64;
 #endif
 
-#endif // BASE_CONTEXT_H
+#endif /* BASE_CONTEXT_H */

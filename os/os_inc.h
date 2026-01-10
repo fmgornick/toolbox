@@ -13,4 +13,4 @@
 #  error no backend for os_inc.h for this operating system
 #endif
 
-#endif // OS_INC_H
+#endif /* OS_INC_H */

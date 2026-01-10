@@ -95,4 +95,4 @@ internal void os_memory_release(void *ptr, U64 size);
 
 internal void os_sleep_ms(U64 ms);
 
-#endif // OS_CORE_H
+#endif /* OS_CORE_H */

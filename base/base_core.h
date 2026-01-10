@@ -201,4 +201,4 @@ internal B32 memory_is_zero(void *ptr, U64 size);
 #define NotImplemented Assert(!"Not Implemented!")
 #define NoOp ((void)0)
 
-#endif // BASE_CORE_H
+#endif /* BASE_CORE_H */

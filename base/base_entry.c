@@ -13,4 +13,4 @@ worker_thread_entry(void (*entry_point)(void *params), void *params)
     NotImplemented;
 }
 
-#endif // BASE_ENTRY_C
+#endif /* BASE_ENTRY_C */

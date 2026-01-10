@@ -192,7 +192,7 @@ arena_pos(Arena *arena)
 }
 
 internal Scratch
-arena_scratch_push(Arena *arena)
+scratch_push(Arena *arena)
 {
     Scratch result = {0};
     result.arena = arena;
@@ -201,7 +201,7 @@ arena_scratch_push(Arena *arena)
 }
 
 internal void
-arena_scratch_pop(Scratch scratch)
+scratch_pop(Scratch scratch)
 {
     arena_pop_to(scratch.arena, scratch.pos);
 }
@@ -267,4 +267,4 @@ pool_pop(Pool *pool, void *ptr)
     }
 }
 
-#endif // BASE_ARENA_C
+#endif /* BASE_ARENA_C */

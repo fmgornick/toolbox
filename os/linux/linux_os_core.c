@@ -32,4 +32,4 @@ os_memory_release(void *ptr, U64 size)
     munmap(ptr, size);
 }
 
-#endif // LINUX_OS_CORE_C
+#endif /* LINUX_OS_CORE_C */

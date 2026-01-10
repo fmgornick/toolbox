@@ -59,8 +59,8 @@ internal void arena_pop_to(Arena *arena, U64 pos);
 internal void arena_align(Arena *arena, U64 pow2_align);
 internal U64 arena_pos(Arena *arena);
 
-internal Scratch arena_scratch_push(Arena *arena);
-internal void arena_scratch_pop(Scratch scratch);
+internal Scratch scratch_push(Arena *arena);
+internal void scratch_pop(Scratch scratch);
 
 internal Pool *pool_alloc(U64 block_size);
 internal Pool *pool_alloc_params(U64 block_size, ArenaParams *params);
@@ -69,4 +69,4 @@ internal void pool_release(Pool *pool);
 internal void *pool_push(Pool *pool);
 internal void pool_pop(Pool *pool, void *ptr);
 
-#endif // BASE_ARENA_H
+#endif /* BASE_ARENA_H */

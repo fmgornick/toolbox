@@ -6,4 +6,4 @@
 #include "base_strings.c"
 #include "base_entry.c"
 
-#endif // BASE_INC_C
+#endif /* BASE_INC_C */

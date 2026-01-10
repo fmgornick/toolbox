@@ -17,6 +17,7 @@ thread_func(void *arg)
     printf("notified\n");
     os_sleep_ms(Thousand(1));
     os_mutex_unlock(tls->mutex);
+    return 0;
 }
 
 internal void

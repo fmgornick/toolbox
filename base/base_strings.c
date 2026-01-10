@@ -29,6 +29,7 @@ internal B32
 char_is_digit(U8 c, U32 base)
 {
     NotImplemented;
+    return 0;
 }
 
 internal U8
@@ -98,7 +99,7 @@ str8_postfix(String8 str, U64 size)
     String8 result = {0};
     U64 size_clamped = ClampTop(size, str.size);
     U64 offset = str.size - size_clamped;
-    result.str = str.str + size_clamped;
+    result.str = str.str + offset;
     result.size = size_clamped;
     return result;
 }
@@ -361,8 +362,8 @@ utf8_decode(U8 *str, U64 max)
     }
     break;
     case 3: {
-        if (max >= 3 &&                         //
-            utf8_bytecount[str[1] >> 3] == 0 && //
+        if (max >= 3 &&                         /**/
+            utf8_bytecount[str[1] >> 3] == 0 && /**/
             utf8_bytecount[str[2] >> 3] == 0)
         {
             result.codepoint = (str[0] & bitmask4) << 12;
@@ -373,9 +374,9 @@ utf8_decode(U8 *str, U64 max)
     }
     break;
     case 4: {
-        if (max >= 4 &&                         //
-            utf8_bytecount[str[1] >> 3] == 0 && //
-            utf8_bytecount[str[2] >> 3] == 0 && //
+        if (max >= 4 &&                         /**/
+            utf8_bytecount[str[1] >> 3] == 0 && /**/
+            utf8_bytecount[str[2] >> 3] == 0 && /**/
             utf8_bytecount[str[3] >> 3] == 0)
         {
             result.codepoint = (str[0] & bitmask3) << 18;
@@ -397,8 +398,8 @@ utf16_decode(U16 *str, U64 max)
     UnicodeDecode result = {max_U32, {1}};
     result.codepoint = str[0];
     result.representation.words = 1;
-    if (max >= 2 &&                             //
-        0xD800 <= str[0] && str[0] <= 0xDBFF && //
+    if (max >= 2 &&                             /**/
+        0xD800 <= str[0] && str[0] <= 0xDBFF && /**/
         0xDC00 <= str[1] && str[1] <= 0xDFFF)
     {
         result.codepoint = ((str[0] & bitmask10) << 10);
@@ -569,4 +570,4 @@ str32_from_8(Arena *arena, String8 in)
     return result;
 }
 
-#endif // BASE_STRING_C
+#endif /* BASE_STRING_C */

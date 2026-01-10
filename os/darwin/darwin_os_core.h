@@ -31,9 +31,14 @@ typedef struct OS_Darwin_Entity {
         pthread_rwlock_t rw_mutex;
         struct {
             pthread_cond_t cv_handle;
-            pthread_mutex_t rw_mutex_handle;
+            pthread_mutex_t mutex_handle;
         } condvar;
-        sem_t semaphore;
+        struct {
+            sem_t *sem_handle;
+            pthread_mutex_t mutex_handle;
+            U64 count;
+            U64 max;
+        } semaphore;
         struct {
             pthread_mutex_t mutex;
             pthread_cond_t condvar;
@@ -52,4 +57,4 @@ internal void *os_darwin_thread_entry(void *ptr);
 
 global OS_Darwin_State os_darwin_state = {0};
 
-#endif // DARWIN_OS_CORE_H
+#endif /* DARWIN_OS_CORE_H */

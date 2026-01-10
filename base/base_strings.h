@@ -54,7 +54,7 @@ internal B32 char_is_digit(U8 c, U32 base);
 internal U8 char_lower(U8 c);
 internal U8 char_upper(U8 c);
 
-#define str8_lit(s) str8((U8 *)(s), sizeof(s) - 1);
+#define str8_lit(s) str8((U8 *)(s), sizeof(s) - 1)
 #define str8_lit_comp(s) {(U8 *)(s), sizeof(s) - 1}
 #define str8_varg(s) (int)((s).size), ((s).str)
 
@@ -88,4 +88,4 @@ internal String16 str16_from_8(Arena *arena, String8 in);
 internal String8 str8_from_32(Arena *arena, String32 in);
 internal String32 str32_from_8(Arena *arena, String8 in);
 
-#endif // BASE_STRING_H
+#endif /* BASE_STRING_H */

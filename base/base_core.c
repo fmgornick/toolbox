@@ -28,4 +28,4 @@ memory_is_zero(void *ptr, U64 size)
     return 1;
 }
 
-#endif // BASE_CORE_C
+#endif /* BASE_CORE_C */

@@ -4,4 +4,4 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
-#endif // OS_CORE_LINUX_H
+#endif /* OS_CORE_LINUX_H */

@@ -27,4 +27,4 @@ os_memory_release(void *ptr, U64 size)
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
-#endif // WINDOWS_OS_CORE_C
+#endif /* WINDOWS_OS_CORE_C */

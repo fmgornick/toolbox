@@ -3,4 +3,4 @@
 
 #include <windows.h>
 
-#endif // OS_CORE_WINDOWS_H
+#endif /* OS_CORE_WINDOWS_H */
