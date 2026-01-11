@@ -34,27 +34,36 @@ typedef struct OS_Darwin_Entity {
             pthread_mutex_t mutex_handle;
         } condvar;
         struct {
-            sem_t *sem_handle;
             pthread_mutex_t mutex_handle;
+            pthread_cond_t cv_handle;
             U64 count;
             U64 max;
+            U64 generation;
         } semaphore;
         struct {
-            pthread_mutex_t mutex;
-            pthread_cond_t condvar;
+            pthread_mutex_t mutex_handle;
+            pthread_cond_t cv_handle;
+            U64 count;
+            U64 max;
+            U64 generation;
         } barrier;
     } type;
 } OS_Darwin_Entity;
 
 typedef struct OS_Darwin_State {
+    Arena *arena;
+    OS_SystemInfo system_info;
+    OS_ProcessInfo process_info;
     pthread_mutex_t entity_mutex;
     Pool *entity_pool;
 } OS_Darwin_State;
 
+global OS_Darwin_State os_darwin_state = {0};
+
+/* os object allocation ----------------------------------------------------- */
 internal OS_Darwin_Entity *os_darwin_entity_alloc(OS_Darwin_EntityKind kind);
 internal void os_darwin_entity_release(OS_Darwin_Entity *entity);
-internal void *os_darwin_thread_entry(void *ptr);
 
-global OS_Darwin_State os_darwin_state = {0};
+internal void *os_darwin_thread_entry(void *ptr);
 
 #endif /* DARWIN_OS_CORE_H */

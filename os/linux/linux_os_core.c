@@ -1,6 +1,7 @@
 #ifndef LINUX_OS_CORE_C
 #define LINUX_OS_CORE_C
 
+#if defined(MADV_DONTNEED)
 internal void *
 os_memory_reserve(U64 size)
 {
@@ -31,5 +32,29 @@ os_memory_release(void *ptr, U64 size)
 {
     munmap(ptr, size);
 }
+#else
+internal void *
+os_memory_reserve(U64 size)
+{
+    return malloc(size);
+}
+
+internal B32
+os_memory_commit(void *ptr, U64 size)
+{
+    return 1;
+}
+
+internal void
+os_memory_decommit(void *ptr, U64 size)
+{
+}
+
+internal void
+os_memory_release(void *ptr, U64 size)
+{
+    free(ptr);
+}
+#endif
 
 #endif /* LINUX_OS_CORE_C */

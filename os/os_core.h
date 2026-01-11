@@ -1,6 +1,23 @@
 #ifndef OS_CORE_H
 #define OS_CORE_H
 
+typedef struct OS_SystemInfo OS_SystemInfo;
+struct OS_SystemInfo {
+    U32 logical_processor_count;
+    U64 page_size;
+    String8 machine_name;
+};
+
+typedef struct OS_ProcessInfo OS_ProcessInfo;
+struct OS_ProcessInfo {
+    U32 pid;
+    /* String8 binary_path; */
+    /* String8 initial_path; */
+    /* String8 user_program_data_path; */
+    /* String8List module_load_paths; */
+    /* String8List environment; */
+};
+
 typedef struct OS_Thread {
     U64 u64[1];
 } OS_Thread;
@@ -27,9 +44,12 @@ typedef struct OS_Barrier {
     U64 u64[1];
 } OS_Barrier;
 
-/* initialize and abort ----------------------------------------------------- */
+/* replace main entry with this --------------------------------------------- */
 
-internal void os_init(void);
+internal void entry_point(int argc, char **argv);
+
+/* aborting ----------------------------------------------------------------- */
+
 internal void os_abort(S32 exit_code);
 
 /* threads ------------------------------------------------------------------ */
@@ -69,7 +89,7 @@ internal void os_condvar_notify_all(OS_Condvar condvar);
 
 /* semaphores --------------------------------------------------------------- */
 
-internal OS_Semaphore os_semaphore_alloc(U64 initial_count, U64 max_count, String8 name);
+internal OS_Semaphore os_semaphore_alloc(U64 initial_count, U64 max_count);
 internal void os_semaphore_release(OS_Semaphore semaphore);
 internal B32 os_semaphore_take(OS_Semaphore semaphore);
 internal B32 os_semaphore_take_n(OS_Semaphore semaphore, U32 n);

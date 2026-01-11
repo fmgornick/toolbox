@@ -136,6 +136,11 @@
 #  define ARCH_ADDRSIZE 32
 #endif
 
+/* expose glibc functions if compiling with c89 ----------------------------- */
+#if OS_LINUX && !defined(_GNU_SOURCE)
+#  define _GNU_SOURCE 1
+#endif
+
 /* helper context keywords -------------------------------------------------- */
 
 #if LANG_CXX
@@ -155,11 +160,11 @@
 #endif
 
 #if COMPILER_CLANG || COMPILER_GCC
-#  define threadvar __thread
+#  define thread_local __thread
 #elif COMPILER_MSVC
-#  define threadvar __declspec(thread)
+#  define thread_local __declspec(thread)
 #else
-#  error threadvar not defined for this compiler
+#  error thread_local not defined for this compiler
 #endif
 
 /* debug trap signal -------------------------------------------------------- */
@@ -244,25 +249,28 @@ shared_function void __asan_unpoison_memory_region(void const volatile *addr, si
  */
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #  include <stdint.h>
-#elif defined(MSC_VER) && MSC_VER >= 1600
+#elif defined(_MSC_VER) && _MSC_VER >= 1600
 #  include <stdint.h>
 #elif defined(__has_include) && __has_include(<stdint.h>)
 #  include <stdint.h>
 #else
-typedef signed char S8;
-typedef short S16;
-typedef int S32;
-typedef long long S64;
-typedef unsigned char U8;
-typedef unsigned short U16;
-typedef unsigned int U32;
-typedef unsigned long long U64;
-typedef S8 B8;
-typedef S16 B16;
-typedef S32 B32;
-typedef S64 B64;
-typedef float F32;
-typedef double F64;
+typedef signed char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef long long int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+
+Assert(sizeof(int8_t) == 1);
+Assert(sizeof(int16_t) == 2);
+Assert(sizeof(int32_t) == 4);
+Assert(sizeof(int64_t) == 8);
+Assert(sizeof(uint8_t) == 1);
+Assert(sizeof(uint16_t) == 2);
+Assert(sizeof(uint32_t) == 4);
+Assert(sizeof(uint64_t) == 8);
 #endif
 
 #endif /* BASE_CONTEXT_H */

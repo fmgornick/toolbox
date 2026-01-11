@@ -5,6 +5,5 @@
 -I.
 -include base/base_inc.h
 -include os/os_inc.h
--Wno-comment
 -Wno-long-long
 -Wno-unused-function

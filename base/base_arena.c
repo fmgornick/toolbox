@@ -1,6 +1,23 @@
 #ifndef BASE_ARENA_C
 #define BASE_ARENA_C
 
+/*
+ *  NOTE(fletcher): Use malloc under the hood if the os layer not implemented.
+ *
+ *  This makes it so the base layer is fully independent of all other layers.
+ *  Without this, the os and base layers cannot be separated, rendering their
+ *  separation pointless.
+ */
+#if !defined(OS_CORE_H)
+#  include <stdlib.h>
+/* clang-format off */
+internal void *os_memory_reserve(U64 size) { return malloc(size); }
+internal B32 os_memory_commit(void *ptr, U64 size) { return 1; }
+internal void os_memory_decommit(void *ptr, U64 size) {}
+internal void os_memory_release(void *ptr, U64 size) { free(ptr); }
+/* clang-format on */
+#endif
+
 internal Arena *
 arena_alloc(void)
 {

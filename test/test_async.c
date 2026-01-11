@@ -1,3 +1,6 @@
+#ifndef TEST_ASYNC_C
+#define TEST_ASYNC_C
+
 typedef struct TLS {
     OS_Mutex mutex;
     OS_Condvar condvar;
@@ -49,3 +52,5 @@ test_threads(Arena *arena)
     os_mutex_unlock(mutex);
     os_thread_join(thread);
 }
+
+#endif /* TEST_ASYNC_C */

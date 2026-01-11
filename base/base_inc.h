@@ -5,6 +5,7 @@
 #include "base_core.h"
 #include "base_arena.h"
 #include "base_strings.h"
-#include "base_entry.h"
+#include "base_thread_context.h"
+#include "base_entry_point.h"
 
 #endif /* BASE_INC_H */

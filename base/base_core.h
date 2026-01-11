@@ -197,6 +197,8 @@ internal B32 memory_is_zero(void *ptr, U64 size);
 
 #define MemoryIsZeroStruct(ptr) memory_is_zero((ptr), sizeof(*(ptr)))
 
+#define ArrayCount(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 #define InvalidPath Assert(!"Invalid Path!")
 #define NotImplemented Assert(!"Not Implemented!")
 #define NoOp ((void)0)

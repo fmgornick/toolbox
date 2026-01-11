@@ -2,12 +2,11 @@
 #define DARWIN_OS_CORE_C
 
 /*
- * TODO(fletcher)
- *
- * - implement semaphores
- * - implement barrier
- * - tests
- */
+   TODO(fletcher): finish darwin platform layer
+
+   - semaphores
+   - tests
+*/
 
 internal OS_Darwin_Entity *
 os_darwin_entity_alloc(OS_Darwin_EntityKind kind)
@@ -38,24 +37,8 @@ os_darwin_thread_entry(void *ptr)
     OS_Darwin_Entity *entity = (OS_Darwin_Entity *)ptr;
     ThreadEntryPoint *func = entity->type.thread.func;
     void *args = entity->type.thread.args;
-    func(args);
+    worker_thread_entry(func, args);
     return 0;
-}
-
-internal void
-os_init(void)
-{
-    pthread_mutexattr_t attr;
-    int mutex_result;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    mutex_result = pthread_mutex_init(&os_darwin_state.entity_mutex, &attr);
-    pthread_mutexattr_destroy(&attr);
-    if (mutex_result != 0)
-    {
-        os_abort(1);
-    }
-    os_darwin_state.entity_pool = pool_alloc(sizeof(OS_Darwin_Entity));
 }
 
 internal void
@@ -415,30 +398,30 @@ os_condvar_notify_all(OS_Condvar condvar)
 }
 
 internal OS_Semaphore
-os_semaphore_alloc(U64 initial_count, U64 max_count, String8 name)
+os_semaphore_alloc(U64 initial_count, U64 max_count)
 {
     OS_Semaphore result = {0};
     if (max_count <= SEM_VALUE_MAX)
     {
         OS_Darwin_Entity *entity = os_darwin_entity_alloc(OS_Darwin_EntityKind_Semaphore);
-        sem_t *semaphore;
         pthread_mutexattr_t mutex_attr;
-        int mutex_result;
-        semaphore = sem_open((char *)name.str, O_CREAT | O_EXCL, 0666, initial_count);
+        pthread_condattr_t cv_attr;
+        int mutex_result, cv_result;
         pthread_mutexattr_init(&mutex_attr);
         pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE);
         mutex_result = pthread_mutex_init(&entity->type.semaphore.mutex_handle, &mutex_attr);
         pthread_mutexattr_destroy(&mutex_attr);
-        if (semaphore != SEM_FAILED && mutex_result == 0)
+        pthread_condattr_init(&cv_attr);
+        cv_result = pthread_cond_init(&entity->type.semaphore.cv_handle, &cv_attr);
+        pthread_condattr_destroy(&cv_attr);
+        if (mutex_result == 0 && cv_result == 0)
         {
-            entity->type.semaphore.sem_handle = semaphore;
             entity->type.semaphore.count = initial_count;
             entity->type.semaphore.max = max_count;
             result.u64[0] = (U64)entity;
         }
         else
         {
-            entity->type.semaphore.sem_handle = 0;
             os_darwin_entity_release(entity);
         }
     }
@@ -451,9 +434,8 @@ os_semaphore_release(OS_Semaphore semaphore)
     if (!MemoryIsZeroStruct(&semaphore))
     {
         OS_Darwin_Entity *entity = (OS_Darwin_Entity *)semaphore.u64[0];
-        sem_close(entity->type.semaphore.sem_handle);
-        /* TODO(fletcher): maybe sem_unlink? */
         pthread_mutex_destroy(&entity->type.semaphore.mutex_handle);
+        pthread_cond_destroy(&entity->type.semaphore.cv_handle);
         os_darwin_entity_release(entity);
     }
 }
@@ -502,20 +484,67 @@ internal OS_Barrier
 os_barrier_alloc(U64 count)
 {
     OS_Barrier result = {0};
-    NotImplemented;
+    OS_Darwin_Entity *entity = os_darwin_entity_alloc(OS_Darwin_EntityKind_Barrier);
+    pthread_mutexattr_t mutex_attr;
+    pthread_condattr_t cv_attr;
+    int mutex_result, cv_result;
+    pthread_mutexattr_init(&mutex_attr);
+    mutex_result = pthread_mutex_init(&entity->type.barrier.mutex_handle, &mutex_attr);
+    pthread_mutexattr_destroy(&mutex_attr);
+    pthread_condattr_init(&cv_attr);
+    cv_result = pthread_cond_init(&entity->type.barrier.cv_handle, &cv_attr);
+    pthread_condattr_destroy(&cv_attr);
+    if (mutex_result == 0 && cv_result == 0)
+    {
+        entity->type.barrier.count = 0;
+        entity->type.barrier.generation = 1;
+        entity->type.barrier.max = count;
+        result.u64[0] = (U64)entity;
+    }
+    else
+    {
+        os_darwin_entity_release(entity);
+    }
     return result;
 }
 
 internal void
 os_barrier_release(OS_Barrier barrier)
 {
-    NotImplemented;
+    if (!MemoryIsZeroStruct(&barrier))
+    {
+        OS_Darwin_Entity *entity = (OS_Darwin_Entity *)barrier.u64[0];
+        pthread_mutex_destroy(&entity->type.barrier.mutex_handle);
+        pthread_cond_destroy(&entity->type.barrier.cv_handle);
+        os_darwin_entity_release(entity);
+    }
 }
 
 internal void
 os_barrier_wait(OS_Barrier barrier)
 {
-    NotImplemented;
+    if (!MemoryIsZeroStruct(&barrier))
+    {
+        OS_Darwin_Entity *entity = (OS_Darwin_Entity *)barrier.u64[0];
+        U64 generation;
+        pthread_mutex_lock(&entity->type.barrier.mutex_handle);
+        generation = entity->type.barrier.generation;
+        entity->type.barrier.count += 1;
+        if (entity->type.barrier.count == entity->type.barrier.max)
+        {
+            entity->type.barrier.count = 0;
+            entity->type.barrier.generation += 1;
+            pthread_cond_broadcast(&entity->type.barrier.cv_handle);
+        }
+        else
+        {
+            while (generation == entity->type.barrier.generation)
+            {
+                pthread_cond_wait(&entity->type.barrier.cv_handle, &entity->type.barrier.mutex_handle);
+            }
+        }
+        pthread_mutex_unlock(&entity->type.barrier.mutex_handle);
+    }
 }
 
 internal void *
@@ -553,6 +582,59 @@ internal void
 os_sleep_ms(U64 ms)
 {
     usleep(ms * Thousand(1));
+}
+
+int
+main(int argc, char **argv)
+{
+    /*
+       NOTE(fletcher): set thread context in base layer
+
+       - OS base layer included => Define `entry_point` in main application,
+         and system/process info can immediately be accessed through exposed
+         os layer operations.
+
+       - OS base layer NOT included => Define `main` in main application, and
+         manually allocate the thread context using tctx_alloc and tctx_select
+         like below. The application will need to find system/process info
+         manually as well if needed.
+     */
+    ThreadContext *tctx = tctx_alloc();
+    tctx_select(tctx);
+
+    /* NOTE(fletcher): set up os layer */
+    {
+        pthread_mutexattr_t mutex_attr;
+        int mutex_result;
+        String8 *machine_name = &os_darwin_state.system_info.machine_name;
+        U64 host_name_len, host_name_max_len;
+
+        os_darwin_state.system_info.logical_processor_count = (U64)sysconf(_SC_NPROCESSORS_CONF);
+        os_darwin_state.system_info.page_size = (U64)getpagesize();
+        os_darwin_state.process_info.pid = (U64)getpid();
+
+        os_darwin_state.arena = arena_alloc();
+        os_darwin_state.entity_pool = pool_alloc(sizeof(OS_Darwin_Entity));
+
+        pthread_mutexattr_init(&mutex_attr);
+        pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+        mutex_result = pthread_mutex_init(&os_darwin_state.entity_mutex, &mutex_attr);
+        pthread_mutexattr_destroy(&mutex_attr);
+        if (mutex_result != 0)
+        {
+            os_abort(1);
+        }
+
+        host_name_max_len = sysconf(_SC_HOST_NAME_MAX);
+        machine_name->str = arena_push(os_darwin_state.arena, host_name_max_len + 1);
+        gethostname((char *)machine_name->str, host_name_max_len);
+        host_name_len = sizeof(machine_name->str);
+        arena_pop(os_darwin_state.arena, host_name_max_len - host_name_len - 1);
+        machine_name->str[host_name_len] = '\0';
+        machine_name->size = host_name_len;
+    }
+
+    main_thread_entry(argc, argv);
 }
 
 #endif /* DARWIN_OS_CORE_C */

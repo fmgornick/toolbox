@@ -6,7 +6,6 @@ flags=(
     "-I../.."
     "-Wall"
     "-Wno-long-long"
-    "-Wno-unicode"
     "-Wno-unused-function"
 )
 debug="-DBUILD_DEBUG -g -fsanitize=address ${flags[@]}"
