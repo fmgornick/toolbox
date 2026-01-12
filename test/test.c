@@ -5,9 +5,11 @@
 #include "os/os_inc.c"
 
 #include "test/test_string.c"
+#include "test/test_async.c"
 
 internal void
-entry_point(int argc, char **argv)
+os_main(int argc, char **argv)
 {
     test_string();
+    test_async();
 }

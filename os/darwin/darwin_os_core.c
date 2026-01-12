@@ -36,8 +36,11 @@ os_darwin_thread_entry(void *ptr)
 {
     OS_Darwin_Entity *entity = (OS_Darwin_Entity *)ptr;
     ThreadEntryPoint *func = entity->type.thread.func;
-    void *args = entity->type.thread.args;
-    worker_thread_entry(func, args);
+    void *params = entity->type.thread.params;
+    ThreadContext *tctx = tctx_alloc();
+    tctx_set(tctx);
+    func(params);
+    tctx_release(tctx);
     return 0;
 }
 
@@ -48,19 +51,19 @@ os_abort(S32 exit_code)
 }
 
 internal OS_Thread
-os_thread_launch(ThreadEntryPoint *func, void *args)
+os_thread_launch(ThreadEntryPoint *func, void *params)
 {
     OS_Thread result = {0};
     OS_Darwin_Entity *entity = os_darwin_entity_alloc(OS_Darwin_EntityKind_Thread);
     pthread_attr_t attr;
     int thread_result;
     pthread_attr_init(&attr);
+    entity->type.thread.func = func;
+    entity->type.thread.params = params;
     thread_result = pthread_create(&entity->type.thread.handle, &attr, os_darwin_thread_entry, entity);
     pthread_attr_destroy(&attr);
     if (thread_result == 0)
     {
-        entity->type.thread.func = func;
-        entity->type.thread.args = args;
         result.u64[0] = (U64)entity;
     }
     else
@@ -587,20 +590,8 @@ os_sleep_ms(U64 ms)
 int
 main(int argc, char **argv)
 {
-    /*
-       NOTE(fletcher): set thread context in base layer
-
-       - OS base layer included => Define `entry_point` in main application,
-         and system/process info can immediately be accessed through exposed
-         os layer operations.
-
-       - OS base layer NOT included => Define `main` in main application, and
-         manually allocate the thread context using tctx_alloc and tctx_select
-         like below. The application will need to find system/process info
-         manually as well if needed.
-     */
     ThreadContext *tctx = tctx_alloc();
-    tctx_select(tctx);
+    tctx_set(tctx);
 
     /* NOTE(fletcher): set up os layer */
     {
@@ -634,7 +625,8 @@ main(int argc, char **argv)
         machine_name->size = host_name_len;
     }
 
-    main_thread_entry(argc, argv);
+    tctx_thread_name_set(str8_lit("main"));
+    os_main(argc, argv);
 }
 
 #endif /* DARWIN_OS_CORE_C */

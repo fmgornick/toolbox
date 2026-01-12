@@ -165,19 +165,14 @@ global const U64 bit64 = 0x8000000000000000ull;
 
 internal B32 memory_is_zero(void *ptr, U64 size);
 
+/* clamp, min, max ---------------------------------------------------------- */
 #define Min(a, b) (((a) < (b)) ? (a) : (b))
 #define Max(a, b) (((a) > (b)) ? (a) : (b))
 #define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
 #define ClampTop(a, b) Min(a, b)
 #define ClampBot(a, b) Max(a, b)
-#define Swap(T, a, b) Statement(T t__ = a; a = b; b = t__;)
-#define Implies(a, b) ((!a) || (b))
 
-#define IsPow2(n) ((n) != 0 && ((n) & ((n) - 1)) == 0)
-#define IsPow2OrZero(n) (((n) & ((n) - 1)) == 0)
-#define AlignUpPow2(n, p) (((n) + (p) - 1) & ~((p) - 1))
-#define AlignDownPow2(n, p) ((n) & ~((p) - 1))
-
+/* units -------------------------------------------------------------------- */
 #define KB(n) ((U64)(n) << 10)
 #define MB(n) ((U64)(n) << 20)
 #define GB(n) ((U64)(n) << 30)
@@ -187,6 +182,13 @@ internal B32 memory_is_zero(void *ptr, U64 size);
 #define Billion(n) ((n) * 1000000000)
 #define Trillion(n) ((n) * 1000000000000)
 
+/* alignment helpers -------------------------------------------------------- */
+#define IsPow2(n) ((n) != 0 && ((n) & ((n) - 1)) == 0)
+#define IsPow2OrZero(n) (((n) & ((n) - 1)) == 0)
+#define AlignUpPow2(n, p) (((n) + (p) - 1) & ~((p) - 1))
+#define AlignDownPow2(n, p) ((n) & ~((p) - 1))
+
+/* memory helpers ----------------------------------------------------------- */
 #include <string.h>
 #define MemoryCopy(dst, src, size) memmove((dst), (src), (size))
 #define MemoryCopyStruct(dst, src) memmove((dst), (src), sizeof(*(dst)))
@@ -194,13 +196,16 @@ internal B32 memory_is_zero(void *ptr, U64 size);
 #define MemoryZero(dst, size) memset((dst), 0, (size))
 #define MemoryZeroStruct(s) memset((s), 0, sizeof(*(s)))
 #define MemoryCompare(a, b, size) memcmp((a), (b), (size))
-
 #define MemoryIsZeroStruct(ptr) memory_is_zero((ptr), sizeof(*(ptr)))
 
-#define ArrayCount(arr) (sizeof(arr) / sizeof((arr)[0]))
-
+/* error macro helpers ------------------------------------------------------ */
 #define InvalidPath Assert(!"Invalid Path!")
 #define NotImplemented Assert(!"Not Implemented!")
 #define NoOp ((void)0)
+
+/* misc. -------------------------------------------------------------------- */
+#define ArrayCount(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define Swap(T, a, b) Statement(T t__ = a; a = b; b = t__;)
+#define Implies(a, b) ((!a) || (b))
 
 #endif /* BASE_CORE_H */

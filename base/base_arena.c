@@ -2,11 +2,11 @@
 #define BASE_ARENA_C
 
 /*
- *  NOTE(fletcher): Use malloc under the hood if the os layer not implemented.
- *
- *  This makes it so the base layer is fully independent of all other layers.
- *  Without this, the os and base layers cannot be separated, rendering their
- *  separation pointless.
+   NOTE(fletcher): Use malloc under the hood if the os layer not implemented.
+
+   This makes it so the base layer is fully independent of all other layers.
+   Without this, the os and base layers cannot be separated, rendering their
+   separation pointless.
  */
 #if !defined(OS_CORE_H)
 #  include <stdlib.h>

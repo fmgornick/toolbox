@@ -24,7 +24,7 @@ typedef struct OS_Darwin_Entity {
     union {
         struct {
             ThreadEntryPoint *func;
-            void *args;
+            void *params;
             pthread_t handle;
         } thread;
         pthread_mutex_t mutex;
@@ -64,6 +64,7 @@ global OS_Darwin_State os_darwin_state = {0};
 internal OS_Darwin_Entity *os_darwin_entity_alloc(OS_Darwin_EntityKind kind);
 internal void os_darwin_entity_release(OS_Darwin_Entity *entity);
 
+/* thread launch entry point ------------------------------------------------ */
 internal void *os_darwin_thread_entry(void *ptr);
 
 #endif /* DARWIN_OS_CORE_H */

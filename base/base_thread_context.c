@@ -22,31 +22,41 @@ tctx_release(ThreadContext *tctx)
 }
 
 internal ThreadContext *
-tctx_selected(void)
+tctx_get(void)
 {
     return tctx_thread_local;
 }
 
 internal void
-tctx_select(ThreadContext *tctx)
+tctx_set(ThreadContext *tctx)
 {
     tctx_thread_local = tctx;
 }
 
 internal void
-tctx_set_thread_name(String8 name)
+tctx_thread_name_set(String8 name)
 {
-    ThreadContext *tctx = tctx_selected();
+    ThreadContext *tctx = tctx_get();
     U64 size = ClampTop(name.size, sizeof(tctx->thread_name));
     MemoryCopy(tctx->thread_name, name.str, size);
     tctx->thread_name_size = size;
 }
 
+internal String8
+tctx_thread_name_get(void)
+{
+    String8 result = {0};
+    ThreadContext *tctx = tctx_get();
+    result.str = tctx->thread_name;
+    result.size = tctx->thread_name_size;
+    return result;
+}
+
 internal Arena *
-tctx_get_scratch(Arena **conflicting, U64 count)
+tctx_scratch_get(Arena **conflicting, U64 count)
 {
     Arena *result = 0;
-    ThreadContext *tctx = tctx_selected();
+    ThreadContext *tctx = tctx_get();
     U64 i;
     for (i = 0; i < ArrayCount(tctx->arenas); i += 1)
     {

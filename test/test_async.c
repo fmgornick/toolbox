@@ -2,54 +2,25 @@
 #define TEST_ASYNC_C
 
 typedef struct TLS {
-    OS_Mutex mutex;
-    OS_Condvar condvar;
+    U64 param1;
+    U64 param2;
 } TLS;
 
-global B32 done = 0;
-
-internal void *
-thread_func(void *arg)
+internal void
+thread_func(void *params)
 {
-    TLS *tls = (TLS *)arg;
-    os_sleep_ms(Thousand(3));
-    os_mutex_lock(tls->mutex);
-    printf("child\n");
-    done = 1;
-    os_condvar_notify_one(tls->condvar);
-    printf("notified\n");
-    os_sleep_ms(Thousand(1));
-    os_mutex_unlock(tls->mutex);
-    return 0;
+    TLS *tls = (TLS *)params;
+    tctx_thread_name_set(str8_lit("worker"));
+    printf("thread: %.*s\n", str8_varg(tctx_thread_name_get()));
+    printf("%llu + %llu = %llu\n", tls->param1, tls->param2, tls->param1 + tls->param2);
 }
 
 internal void
-test_threads(Arena *arena)
+test_async(void)
 {
-    OS_Mutex mutex;
-    OS_Condvar condvar;
-    OS_Thread thread;
-    TLS tls;
-    os_init();
-    mutex = os_mutex_alloc();
-    condvar = os_condvar_alloc();
-    tls.mutex = mutex;
-    tls.condvar = condvar;
-
-    thread = os_thread_launch((ThreadEntryPoint *)thread_func, (void *)&tls);
-    printf("initial wait (1 sec)...\n");
-
-    printf("waiting on condvar...\n");
-    os_mutex_lock(mutex);
-    while (done == 0)
-    {
-        B32 res;
-        printf("parent\n");
-        res = os_condvar_wait_ms(condvar, mutex, 5000);
-        printf("res: %d\n", res);
-    }
-
-    os_mutex_unlock(mutex);
+    TLS tls = {2, 2};
+    OS_Thread thread = os_thread_launch(thread_func, (void *)&tls);
+    printf("thread: %.*s\n", str8_varg(tctx_thread_name_get()));
     os_thread_join(thread);
 }
 
