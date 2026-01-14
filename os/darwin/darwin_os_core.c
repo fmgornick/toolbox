@@ -5,9 +5,18 @@
    TODO(fletcher): finish darwin platform layer
 
    - semaphores
+   - file system
+   - directory navigation
+   - system/process info getters & setters
+   - time
+   - process forking
+   - library opening closing and loading
    - tests
 */
 
+/* -------------------------------------------------------------------------- */
+/* os object allocation ----------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal OS_Darwin_Entity *
 os_darwin_entity_alloc(OS_Darwin_EntityKind kind)
 {
@@ -31,6 +40,9 @@ os_darwin_entity_release(OS_Darwin_Entity *entity)
     pthread_mutex_unlock(&os_darwin_state.entity_mutex);
 }
 
+/* -------------------------------------------------------------------------- */
+/* thread launch entry point ------------------------------------------------ */
+/* -------------------------------------------------------------------------- */
 internal void *
 os_darwin_thread_entry(void *ptr)
 {
@@ -44,12 +56,35 @@ os_darwin_thread_entry(void *ptr)
     return 0;
 }
 
+/* -------------------------------------------------------------------------- */
+/* system/process info ------------------------------------------------------ */
+/* -------------------------------------------------------------------------- */
+internal OS_SystemInfo *
+os_system_info_get(void)
+{
+    OS_SystemInfo *result = &os_darwin_state.system_info;
+    return result;
+}
+
+internal OS_ProcessInfo *
+os_process_info_get(void)
+{
+    OS_ProcessInfo *result = &os_darwin_state.process_info;
+    return result;
+}
+
+/* -------------------------------------------------------------------------- */
+/* aborting ----------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal void
 os_abort(S32 exit_code)
 {
     exit(exit_code);
 }
 
+/* -------------------------------------------------------------------------- */
+/* threads ------------------------------------------------------------------ */
+/* -------------------------------------------------------------------------- */
 internal OS_Thread
 os_thread_launch(ThreadEntryPoint *func, void *params)
 {
@@ -97,6 +132,9 @@ os_thread_detach(OS_Thread thread)
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/* recursive mutexs --------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal OS_Mutex
 os_mutex_alloc(void)
 {
@@ -150,6 +188,9 @@ os_mutex_unlock(OS_Mutex mutex)
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/* read/write mutexs -------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal OS_RWMutex
 os_rw_mutex_alloc(void)
 {
@@ -222,6 +263,9 @@ os_rw_mutex_unlock_w(OS_RWMutex mutex)
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/* condition variables ------------------------------------------------------ */
+/* -------------------------------------------------------------------------- */
 internal OS_Condvar
 os_condvar_alloc(void)
 {
@@ -400,6 +444,9 @@ os_condvar_notify_all(OS_Condvar condvar)
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/* semaphores --------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal OS_Semaphore
 os_semaphore_alloc(U64 initial_count, U64 max_count)
 {
@@ -483,6 +530,9 @@ os_semaphore_drop_n(OS_Semaphore semaphore, U32 n)
     NotImplemented;
 }
 
+/* -------------------------------------------------------------------------- */
+/* barriers ----------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal OS_Barrier
 os_barrier_alloc(U64 count)
 {
@@ -550,6 +600,9 @@ os_barrier_wait(OS_Barrier barrier)
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/* memory allocation -------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal void *
 os_memory_reserve(U64 size)
 {
@@ -581,52 +634,186 @@ os_memory_release(void *ptr, U64 size)
     munmap(ptr, size);
 }
 
+/* -------------------------------------------------------------------------- */
+/* time --------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 internal void
 os_sleep_ms(U64 ms)
 {
     usleep(ms * Thousand(1));
 }
 
+/* -------------------------------------------------------------------------- */
+/* file manipulation -------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+internal OS_Handle
+os_file_open(String8 path, OS_Access access)
+{
+    OS_Handle result = {0};
+    Scratch scratch = scratch_begin(0, 0);
+    String8 path_copy = str8_copy(scratch.arena, path);
+    int oflags, fd;
+    oflags = 0;
+    if (access & OS_Access_Read && access & OS_Access_Write)
+    {
+        oflags = O_RDWR;
+    }
+    else if (access & OS_Access_Read)
+    {
+        oflags = O_RDONLY;
+    }
+    else if (access & OS_Access_Write)
+    {
+        oflags = O_WRONLY;
+    }
+    if (access & OS_Access_Append)
+    {
+        oflags |= O_APPEND;
+    }
+    if (access & (OS_Access_Write | OS_Access_Append))
+    {
+        oflags |= O_CREAT;
+    }
+    /* TODO(fletcher): handle w/ varying file access permissions */
+    fd = open((char *)path_copy.str, oflags, 0700);
+    if (fd != 1)
+    {
+        result.u64[0] = (U64)fd;
+    }
+    scratch_end(scratch);
+    return result;
+}
+
+internal void
+os_file_close(OS_Handle handle)
+{
+    int fd = (int)handle.u64[0];
+    close(fd);
+}
+
+internal U64
+os_file_read(OS_Handle handle, RangeU64 range, void *out)
+{
+    int fd = (int)handle.u64[0];
+    U64 offset = range.min;
+    U64 bytes_to_read = range_u64_len(range);
+    U64 bytes_read = 0;
+    while (bytes_to_read > 0)
+    {
+        ssize_t read_result = pread(fd, (U8 *)out + bytes_read, bytes_to_read, offset + bytes_read);
+        if (read_result >= 0)
+        {
+            bytes_read += read_result;
+            bytes_to_read -= read_result;
+        }
+        else if (errno != EINTR)
+        {
+            break;
+        }
+    }
+    return bytes_read;
+}
+
+internal U64
+os_file_write(OS_Handle handle, RangeU64 range, void *in)
+{
+    int fd = (int)handle.u64[0];
+    U64 offset = range.min;
+    U64 bytes_to_write = range_u64_len(range);
+    U64 bytes_written = 0;
+    while (bytes_to_write > 0)
+    {
+        ssize_t write_result = pwrite(fd, (U8 *)in + bytes_written, bytes_to_write, offset + bytes_written);
+        if (write_result >= 0)
+        {
+            bytes_written += write_result;
+            bytes_to_write -= write_result;
+        }
+        else if (errno != EINTR)
+        {
+            break;
+        }
+    }
+    return bytes_written;
+}
+
+/* -------------------------------------------------------------------------- */
+/* main entrypoint ---------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 int
 main(int argc, char **argv)
 {
     ThreadContext *tctx = tctx_alloc();
     tctx_set(tctx);
 
-    /* NOTE(fletcher): set up os layer */
-    {
-        pthread_mutexattr_t mutex_attr;
-        int mutex_result;
-        String8 *machine_name = &os_darwin_state.system_info.machine_name;
-        U64 host_name_len, host_name_max_len;
-
-        os_darwin_state.system_info.logical_processor_count = (U64)sysconf(_SC_NPROCESSORS_CONF);
-        os_darwin_state.system_info.page_size = (U64)getpagesize();
-        os_darwin_state.process_info.pid = (U64)getpid();
+    { /* initialize os layer ------------------------------------------------ */
+        OS_SystemInfo *sysinfo = &os_darwin_state.system_info;
+        OS_ProcessInfo *procinfo = &os_darwin_state.process_info;
 
         os_darwin_state.arena = arena_alloc();
         os_darwin_state.entity_pool = pool_alloc(sizeof(OS_Darwin_Entity));
 
-        pthread_mutexattr_init(&mutex_attr);
-        pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE);
-        mutex_result = pthread_mutex_init(&os_darwin_state.entity_mutex, &mutex_attr);
-        pthread_mutexattr_destroy(&mutex_attr);
-        if (mutex_result != 0)
-        {
-            os_abort(1);
+        sysinfo->logical_processor_count = (U64)sysconf(_SC_NPROCESSORS_ONLN);
+        sysinfo->page_size = (U64)getpagesize();
+        procinfo->pid = (U64)getpid();
+
+        { /* entity mutex */
+            int mutex_result;
+            pthread_mutexattr_t mutex_attr;
+            pthread_mutexattr_init(&mutex_attr);
+            pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+            mutex_result = pthread_mutex_init(&os_darwin_state.entity_mutex, &mutex_attr);
+            pthread_mutexattr_destroy(&mutex_attr);
+            if (mutex_result != 0)
+            {
+                os_abort(1);
+            }
         }
 
-        host_name_max_len = sysconf(_SC_HOST_NAME_MAX);
-        machine_name->str = arena_push(os_darwin_state.arena, host_name_max_len + 1);
-        gethostname((char *)machine_name->str, host_name_max_len);
-        host_name_len = sizeof(machine_name->str);
-        arena_pop(os_darwin_state.arena, host_name_max_len - host_name_len - 1);
-        machine_name->str[host_name_len] = '\0';
-        machine_name->size = host_name_len;
+        { /* machine name */
+            U64 host_name_len, host_name_max_len;
+            host_name_max_len = sysconf(_SC_HOST_NAME_MAX);
+            sysinfo->machine_name.str = arena_push(os_darwin_state.arena, host_name_max_len + 1);
+            gethostname((char *)sysinfo->machine_name.str, host_name_max_len);
+            host_name_len = cstr8_length(sysinfo->machine_name.str);
+            arena_pop(os_darwin_state.arena, host_name_max_len - host_name_len - 1);
+            sysinfo->machine_name.str[host_name_len] = '\0';
+            sysinfo->machine_name.size = host_name_len;
+        }
+
+        { /* binary path */
+            int binary_path_len;
+            procinfo->binary_path.str = arena_push(os_darwin_state.arena, PATH_MAX);
+            binary_path_len = proc_pidpath(procinfo->pid, procinfo->binary_path.str, PATH_MAX);
+            arena_pop(os_darwin_state.arena, PATH_MAX - binary_path_len - 1);
+            procinfo->binary_path.str[binary_path_len] = '\0';
+            procinfo->binary_path.size = binary_path_len;
+        }
+
+        { /* initial path */
+            char *path = getcwd(0, 0);
+            procinfo->initial_path = str8_cstring((U8 *)path);
+        }
     }
 
-    tctx_thread_name_set(str8_lit("main"));
-    os_main(argc, argv);
+    { /* call into "real" entry point --------------------------------------- */
+        tctx_thread_name_set(str8_lit("main"));
+        os_main(argc, argv);
+    }
+
+    { /* clean up os layer -------------------------------------------------- */
+        /*
+           NOTE(fletcher): not really necessary
+
+           Since we're just exiting once all the resources are dropped, we
+           don't really need to free up the memory, but i'm leaving it in for
+           now since it's not too much extra work, and we might still want to
+           check for leaks in other places in the code.
+         */
+        tctx_release(tctx);
+        arena_release(os_darwin_state.arena);
+        pool_release(os_darwin_state.entity_pool);
+    }
 }
 
 #endif /* DARWIN_OS_CORE_C */

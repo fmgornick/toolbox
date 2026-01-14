@@ -54,6 +54,45 @@ char_upper(U8 c)
     return new_c;
 }
 
+internal U64
+cstr8_length(U8 *cstr)
+{
+    U64 result = 0;
+    if (cstr)
+    {
+        U8 *ptr;
+        for (ptr = cstr; *ptr != '\0'; ptr += 1);
+        result = (U64)(ptr - cstr);
+    }
+    return result;
+}
+
+internal U64
+cstr16_length(U16 *cstr)
+{
+    U64 result = 0;
+    if (cstr)
+    {
+        U16 *ptr;
+        for (ptr = cstr; *ptr != '\0'; ptr += 1);
+        result = (U64)(ptr - cstr);
+    }
+    return result;
+}
+
+internal U64
+cstr32_length(U32 *cstr)
+{
+    U64 result = 0;
+    if (cstr)
+    {
+        U32 *ptr;
+        for (ptr = cstr; *ptr != '\0'; ptr += 1);
+        result = (U64)(ptr - cstr);
+    }
+    return result;
+}
+
 internal String8
 str8(U8 *str, U64 size)
 {
@@ -80,6 +119,17 @@ str8_cstring(U8 *cstr)
     ptr = cstr;
     while (*ptr != '\0') ptr += 1;
     result = str8_range(cstr, ptr);
+    return result;
+}
+
+internal String8
+str8_copy(Arena *arena, String8 str)
+{
+    String8 result = {0};
+    result.size = str.size;
+    result.str = (U8 *)arena_push(arena, result.size + 1);
+    MemoryCopy(result.str, str.str, result.size);
+    result.str[result.size] = '\0';
     return result;
 }
 

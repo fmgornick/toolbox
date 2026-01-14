@@ -13,7 +13,7 @@ test_string(void)
 {
     Scratch scratch = scratch_begin(0, 0);
 
-    {
+    { /* string slicing ----------------------------------------------------- */
         String8 input = str8_lit("word1 word2 word3");
 
         printf("str8_prefix ... ");
@@ -45,7 +45,7 @@ test_string(void)
         printf("passed\n");
     }
 
-    {
+    { /* string splitting and joining --------------------------------------- */
         String8 input = str8_lit("12foo4barfoo78foobar11foo1314foobar");
         String8 split = str8_lit("foobar");
         String8 expected_split_pattern[5] = {
@@ -80,7 +80,7 @@ test_string(void)
         printf("passed\n");
     }
 
-    {
+    { /* utf-8 and utf-16 string conversions -------------------------------- */
         U8 utf8[] = {0x46, 0xc3, 0xa9, 0xe2, 0x82, 0xac, 0xf0, 0x9f, 0x98, 0x8e};
         U16 utf16[] = {0x0046, 0x00e9, 0x20ac, 0xd83d, 0xde0e};
         U32 utf32[] = {0x00000046, 0x000000e9, 0x000020ac, 0x0001f60e};
@@ -118,8 +118,9 @@ test_string(void)
     scratch_end(scratch);
 }
 
+/* -------------------------------------------------------------------------- */
 /* assertion helper implementations ----------------------------------------- */
-
+/* -------------------------------------------------------------------------- */
 internal B32
 str8_equal(String8 expected, String8 actual)
 {

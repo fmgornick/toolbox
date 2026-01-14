@@ -55,10 +55,16 @@ internal B32 char_is_digit(U8 c, U32 base);
 internal U8 char_lower(U8 c);
 internal U8 char_upper(U8 c);
 
+/* c-string measurement ----------------------------------------------------- */
+internal U64 cstr8_length(U8 *c);
+internal U64 cstr16_length(U16 *c);
+internal U64 cstr32_length(U32 *c);
+
 /* initialization ----------------------------------------------------------- */
 internal String8 str8(U8 *str, U64 size);
 internal String8 str8_range(U8 *first, U8 *opl);
 internal String8 str8_cstring(U8 *cstr);
+internal String8 str8_copy(Arena *arena, String8 str);
 
 /* string slicing ----------------------------------------------------------- */
 internal String8 str8_prefix(String8 str, U64 size);

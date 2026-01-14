@@ -1,22 +1,31 @@
 #ifndef OS_CORE_H
 #define OS_CORE_H
 
-typedef struct OS_SystemInfo OS_SystemInfo;
-struct OS_SystemInfo {
+typedef struct OS_SystemInfo {
     U32 logical_processor_count;
     U64 page_size;
     String8 machine_name;
-};
+} OS_SystemInfo;
 
-typedef struct OS_ProcessInfo OS_ProcessInfo;
-struct OS_ProcessInfo {
+typedef struct OS_ProcessInfo {
     U32 pid;
-    /* String8 binary_path; */
-    /* String8 initial_path; */
+    String8 binary_path;
+    String8 initial_path;
     /* String8 user_program_data_path; */
     /* String8List module_load_paths; */
     /* String8List environment; */
-};
+} OS_ProcessInfo;
+
+typedef enum OS_Access {
+    OS_Access_Read = (1 << 0),    /**/
+    OS_Access_Write = (1 << 1),   /**/
+    OS_Access_Execute = (1 << 2), /**/
+    OS_Access_Append = (1 << 3)   /**/
+} OS_Access;
+
+typedef struct OS_Handle {
+    U64 u64[1];
+} OS_Handle;
 
 typedef struct OS_Thread {
     U64 u64[1];
@@ -43,6 +52,10 @@ typedef struct OS_Semaphore {
 typedef struct OS_Barrier {
     U64 u64[1];
 } OS_Barrier;
+
+/* system/process info ------------------------------------------------------ */
+internal OS_SystemInfo *os_system_info_get(void);
+internal OS_ProcessInfo *os_process_info_get(void);
 
 /* main entrypoint (define in user application) ----------------------------- */
 internal void os_main(int argc, char **argv);
@@ -104,5 +117,11 @@ internal void os_memory_release(void *ptr, U64 size);
 
 /* time --------------------------------------------------------------------- */
 internal void os_sleep_ms(U64 ms);
+
+/* file manipulation -------------------------------------------------------- */
+internal OS_Handle os_file_open(String8 path, OS_Access access);
+internal void os_file_close(OS_Handle file);
+internal U64 os_file_read(OS_Handle file, RangeU64 range, void *out);
+internal U64 os_file_write(OS_Handle file, RangeU64 range, void *in);
 
 #endif /* OS_CORE_H */

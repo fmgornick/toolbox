@@ -8,7 +8,7 @@ flags=(
     "-Wno-long-long"
     "-Wno-unused-function"
 )
-debug="-DBUILD_DEBUG -g -fsanitize=address ${flags[@]}"
+debug="-DBUILD_DEBUG -g -fsanitize=address -fno-omit-frame-pointer ${flags[@]}"
 release="-DBUILD_RELEASE -O3 ${flags[@]}"
 
 mkdir -p build

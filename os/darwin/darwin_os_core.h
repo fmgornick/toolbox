@@ -2,6 +2,8 @@
 #define DARWIN_OS_CORE_H
 
 #include <errno.h>
+#include <fcntl.h>
+#include <libproc.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdlib.h>
