@@ -11,6 +11,7 @@
 #if !defined(OS_CORE_H)
 #  include <stdlib.h>
 /* clang-format off */
+internal U64 os_system_page_size_get(void) { return KB(4); }
 internal void *os_memory_reserve(U64 size) { return malloc(size); }
 internal B32 os_memory_commit(void *ptr, U64 size) { return 1; }
 internal void os_memory_decommit(void *ptr, U64 size) {}
@@ -38,8 +39,9 @@ arena_alloc_params(ArenaParams *params)
     Arena *result = 0;
     if (params->reserve_size > params->commit_size)
     {
-        U64 reserve_size_aligned = AlignUpPow2(params->reserve_size, KB(4));
-        U64 commit_size_aligned = AlignUpPow2(params->commit_size, KB(4));
+        U64 page_size = os_system_page_size_get();
+        U64 reserve_size_aligned = AlignUpPow2(params->reserve_size, page_size);
+        U64 commit_size_aligned = AlignUpPow2(params->commit_size, page_size);
         void *memory = os_memory_reserve(reserve_size_aligned);
         if (os_memory_commit(memory, commit_size_aligned))
         {
@@ -89,13 +91,14 @@ arena_push(Arena *arena, U64 size)
         next_chunk_pos += size;
         if (next_chunk_pos > current->res)
         {
-            U64 reserve_size = AlignUpPow2(arena->res_size, KB(4));
-            U64 commit_size = AlignUpPow2(arena->cmt_size, KB(4));
+            U64 page_size = os_system_page_size_get();
+            U64 reserve_size = AlignUpPow2(arena->res_size, page_size);
+            U64 commit_size = AlignUpPow2(arena->cmt_size, page_size);
             U64 enough_to_fit = ARENA_HEADER_SIZE + size;
             void *memory;
             if (reserve_size < enough_to_fit)
             {
-                reserve_size = AlignUpPow2(enough_to_fit, KB(4));
+                reserve_size = AlignUpPow2(enough_to_fit, page_size);
             }
             memory = os_memory_reserve(reserve_size);
             if (os_memory_commit(memory, commit_size))
@@ -230,6 +233,7 @@ pool_alloc(U64 block_size)
     Arena *arena;
     Pool *result;
     U64 block_size_clamped;
+    U64 page_size = os_system_page_size_get();
     params.reserve_size = ARENA_DEFAULT_RESERVE_SIZE;
     params.commit_size = ARENA_DEFAULT_COMMIT_SIZE;
     params.alignment = sizeof(void *);
@@ -237,7 +241,7 @@ pool_alloc(U64 block_size)
     params.zero = 0;
     arena = arena_alloc_params(&params);
 
-    block_size_clamped = AlignUpPow2(ClampTop(block_size, sizeof(PoolNode)), KB(4));
+    block_size_clamped = AlignUpPow2(ClampTop(block_size, sizeof(PoolNode)), page_size);
     result = arena_push(arena, block_size_clamped);
     result->arena = arena;
     result->free = 0;

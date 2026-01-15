@@ -3,7 +3,7 @@
 flags=(
     "-std=c89"
     "-pedantic"
-    "-I../.."
+    "-I.."
     "-Wall"
     "-Wno-long-long"
     "-Wno-unused-function"
@@ -11,9 +11,10 @@ flags=(
 debug="-DBUILD_DEBUG -g -fsanitize=address -fno-omit-frame-pointer ${flags[@]}"
 release="-DBUILD_RELEASE -O3 ${flags[@]}"
 
-mkdir -p build
-cd build
+cd $(realpath $(dirname $0))
+mkdir -p ../build
+cd ../build
 
-clang $debug ../test.c -o test
+clang $debug ../test/test.c -o test
 
 cd ..

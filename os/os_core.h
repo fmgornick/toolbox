@@ -11,16 +11,12 @@ typedef struct OS_ProcessInfo {
     U32 pid;
     String8 binary_path;
     String8 initial_path;
-    /* String8 user_program_data_path; */
-    /* String8List module_load_paths; */
-    /* String8List environment; */
 } OS_ProcessInfo;
 
 typedef enum OS_Access {
-    OS_Access_Read = (1 << 0),    /**/
-    OS_Access_Write = (1 << 1),   /**/
-    OS_Access_Execute = (1 << 2), /**/
-    OS_Access_Append = (1 << 3)   /**/
+    OS_Access_Read = (1 << 0),   /**/
+    OS_Access_Write = (1 << 1),  /**/
+    OS_Access_Execute = (1 << 2) /**/
 } OS_Access;
 
 typedef struct OS_Handle {
@@ -56,6 +52,7 @@ typedef struct OS_Barrier {
 /* system/process info ------------------------------------------------------ */
 internal OS_SystemInfo *os_system_info_get(void);
 internal OS_ProcessInfo *os_process_info_get(void);
+internal U64 os_system_page_size_get(void);
 
 /* main entrypoint (define in user application) ----------------------------- */
 internal void os_main(int argc, char **argv);
@@ -109,6 +106,12 @@ internal OS_Barrier os_barrier_alloc(U64 count);
 internal void os_barrier_release(OS_Barrier barrier);
 internal void os_barrier_wait(OS_Barrier barrier);
 
+/* file manipulation -------------------------------------------------------- */
+internal OS_Handle os_file_open(String8 path, OS_Access access);
+internal void os_file_close(OS_Handle file);
+internal U64 os_file_read(OS_Handle file, void *output, U64 offset, U64 size);
+internal U64 os_file_write(OS_Handle file, void *input, U64 offset, U64 size);
+
 /* memory allocation -------------------------------------------------------- */
 internal void *os_memory_reserve(U64 size);
 internal B32 os_memory_commit(void *ptr, U64 size);
@@ -117,11 +120,5 @@ internal void os_memory_release(void *ptr, U64 size);
 
 /* time --------------------------------------------------------------------- */
 internal void os_sleep_ms(U64 ms);
-
-/* file manipulation -------------------------------------------------------- */
-internal OS_Handle os_file_open(String8 path, OS_Access access);
-internal void os_file_close(OS_Handle file);
-internal U64 os_file_read(OS_Handle file, RangeU64 range, void *out);
-internal U64 os_file_write(OS_Handle file, RangeU64 range, void *in);
 
 #endif /* OS_CORE_H */
